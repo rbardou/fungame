@@ -2,6 +2,7 @@ open Fungame_sdl
 open Widget
 
 let quit_button = Button.create quit
+let bat = Image.load "bat.png"
 
 let button_color button =
   if Button.is_under_cursor button then
@@ -17,7 +18,12 @@ let () =
   [
     rect ~fill: true ~color: (50, 50, 50, 255) ();
     hsplitl [
-      rect ~fill: true ~color: (255, 50, 50, 255) ();
+      box [
+        rect ~fill: true ~color: (255, 50, 50, 255) ();
+        rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ()
+        |> center |> middle;
+        image bat |> center |> middle;
+      ];
       margin_box ~left: 20 ~top: 15 ~right: 10 ~bottom: 5 [
         rect ~fill: true ~color: (50, 255, 50, 255) ();
         hbox [

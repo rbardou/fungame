@@ -5,7 +5,8 @@ let (>>=) x f =
     | Error (`Msg e) ->
         Printf.printf "SDL error: %s" e;
         Sdl.log "SDL error: %s" e;
-        Sdl.quit ()
+        Sdl.quit ();
+        exit 1
     | Ok x ->
         f x
 
@@ -23,20 +24,46 @@ let get_renderer () =
 
 module Image =
 struct
-  type t =
-    {
-      w: int;
-      h: int;
-    }
+  type image =
+    | To_load of string
+    | Loaded of Sdl.texture * int * int
 
-  let width image = image.w
-  let height image = image.h
+  type t = image ref
+
+  let width image =
+    match !image with
+      | To_load _ -> 0
+      | Loaded (_, w, _) -> w
+
+  let height image =
+    match !image with
+      | To_load _ -> 0
+      | Loaded (_, _, h) -> h
 
   let load filename =
-    assert false (* TODO *)
+    if Sys.file_exists filename then
+      ref (To_load filename)
+    else
+      failwith ("no such file: " ^ filename)
 
   let draw ~src_x ~src_y ~w ~h ~x ~y image =
-    assert false (* TODO *)
+    let renderer = get_renderer () in
+    let texture, image_w, image_h =
+      match !image with
+        | To_load filename ->
+            Tsdl_image.Image.load_texture renderer filename >>= fun texture ->
+            Sdl.query_texture texture >>= fun (_, _, (w, h)) ->
+            image := Loaded (texture, w, h);
+            texture, w, h
+        | Loaded (texture, image_w, image_h) ->
+            texture, image_w, image_h
+    in
+    let w = min w image_w in
+    let h = min h image_h in
+    let src = Sdl.Rect.create 0 0 w h in
+    let dst = Sdl.Rect.create x y w h in
+    Sdl.render_copy ~src ~dst renderer texture >>= fun () ->
+    ()
 
   let draw_rect ~x ~y ~w ~h ~color ~fill =
     let renderer = get_renderer () in
