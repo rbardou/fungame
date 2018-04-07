@@ -20,8 +20,65 @@ end
 module Image:
 sig
   include Widget.IMAGE
+
+  (** Load an image from a file. *)
   val load: Window.t -> string -> t
+
+  (** Free an image. *)
   val destroy: t -> unit
+
+  (** Get the width of an image. *)
+  val width: t -> int
+
+  (** Get the height of an image. *)
+  val height: t -> int
+end
+
+(** {2 Fonts} *)
+
+module Font:
+sig
+  type t
+
+  (** Load a font from a file, given a requested font size. *)
+  val load: Window.t -> string -> int -> t
+
+  (** Free a font. *)
+  val destroy: t -> unit
+
+  (** How to render text.
+
+      [Solid] is fast to render and to draw, but it is ugly.
+
+      [Shaded] is slower to render but as fast as [Solid] to draw.
+      It is as pretty as [Blended] but the resulting image is not transparent.
+      The arguments are the background color (red, green, blue, alpha).
+
+      [Blended] is as slow to render as [Shaded] and the image is transparent,
+      so it is the best mode to draw on top of other images.
+
+      [Wrapped width] is the same as [Blended], except that the text is split
+      into several lines if it is larger than [width]. *)
+  type mode =
+    | Solid
+    | Shaded of int * int * int * int
+    | Blended
+    | Wrapped of int
+
+  (** Render some text.
+
+      If [utf8] is [true], assume the input string is UTF8-encoded.
+      Otherwise, assume the input string is LATIN1-encoded.
+      Default is [true].
+
+      Default [mode] is [Blended].
+
+      Default [color] is black ([0, 0, 0, 255]). *)
+  val render:
+    ?utf8: bool ->
+    ?mode: mode ->
+    ?color: (int * int * int * int) ->
+    t -> string -> Image.t
 end
 
 (** {2 Widgets} *)

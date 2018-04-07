@@ -22,6 +22,7 @@ struct
   let create ?(title = "Fungame") ?(w = 640) ?(h = 480) () =
     (* Initialize SDL. *)
     Sdl.init Sdl.Init.video >>= fun () ->
+    Tsdl_ttf.Ttf.init () >>= fun () ->
     (* fullscreen_desktop seems broken with older versions of SDL… *)
     Sdl.create_window title ~w ~h
       Sdl.Window.(opengl (* + fullscreen_desktop *)) >>= fun window ->
@@ -74,11 +75,7 @@ struct
   let width image = image.w
   let height image = image.h
 
-  let load (window: Window.t) filename =
-    if not (Sys.file_exists filename) then
-      failwith ("no such file: " ^ filename);
-    let renderer = Window.renderer window in
-    Tsdl_image.Image.load_texture renderer filename >>= fun texture ->
+  let from_texture window texture =
     Sdl.query_texture texture >>= fun (_, _, (w, h)) ->
     {
       window;
@@ -86,6 +83,13 @@ struct
       w;
       h;
     }
+
+  let load (window: Window.t) filename =
+    if not (Sys.file_exists filename) then
+      failwith ("no such file: " ^ filename);
+    let renderer = Window.renderer window in
+    Tsdl_image.Image.load_texture renderer filename >>= fun texture ->
+    from_texture window texture
 
   let destroy image =
     match image.texture with
@@ -107,6 +111,79 @@ struct
           let dst = Sdl.Rect.create x y w h in
           Sdl.render_copy ~src ~dst renderer texture >>= fun () ->
           ()
+end
+
+module Font =
+struct
+  type t =
+    {
+      window: Window.t;
+      mutable font: Tsdl_ttf.Ttf.font option;
+    }
+
+  let load window filename size =
+    Tsdl_ttf.Ttf.open_font filename size >>= fun font ->
+    {
+      window;
+      font = Some font;
+    }
+
+  let destroy font =
+    match font.font with
+      | None ->
+          ()
+      | Some f ->
+          Tsdl_ttf.Ttf.close_font f;
+          font.font <- None
+
+  type mode =
+    | Solid
+    | Shaded of int * int * int * int
+    | Blended
+    | Wrapped of int
+
+  let render ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
+      font text =
+    let window = font.window in
+    let renderer = Window.renderer window in
+    let font =
+      match font.font with
+        | None ->
+            failwith "font has been destroyed"
+        | Some font ->
+            font
+    in
+    let color =
+      let r, g, b, a = color in
+      Sdl.Color.create ~r ~g ~b ~a
+    in
+    (
+      match utf8, mode with
+        | false, Solid ->
+            Tsdl_ttf.Ttf.render_text_solid font text color
+        | true, Solid ->
+            Tsdl_ttf.Ttf.render_utf8_solid font text color
+        | false, Shaded (r, g, b, a) ->
+            let bg_color = Sdl.Color.create ~r ~g ~b ~a in
+            Tsdl_ttf.Ttf.render_text_shaded font text color bg_color
+        | true, Shaded (r, g, b, a) ->
+            let bg_color = Sdl.Color.create ~r ~g ~b ~a in
+            Tsdl_ttf.Ttf.render_utf8_shaded font text color bg_color
+        | false, Blended ->
+            Tsdl_ttf.Ttf.render_text_blended font text color
+        | true, Blended ->
+            Tsdl_ttf.Ttf.render_utf8_blended font text color
+        | false, Wrapped width ->
+            Tsdl_ttf.Ttf.render_text_blended_wrapped font text color
+              (Int32.of_int width)
+        | true, Wrapped width ->
+            Tsdl_ttf.Ttf.render_utf8_blended_wrapped font text color
+              (Int32.of_int width)
+    ) >>= fun surface ->
+    Sdl.create_texture_from_surface renderer surface >>= fun texture ->
+    Sdl.free_surface surface;
+    Image.from_texture window texture
+
 end
 
 module Widget = Widget.Make (Image)

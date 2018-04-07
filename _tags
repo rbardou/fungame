@@ -3,3 +3,4 @@ true: warn(-40)
 true: annot
 true: package(tsdl)
 true: package(tsdl_image)
+true: package(tsdl_ttf)
