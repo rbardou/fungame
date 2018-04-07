@@ -13,8 +13,8 @@ module Window =
 struct
   type t =
     {
-      window: Sdl.window;
-      renderer: Sdl.renderer;
+      mutable window: Sdl.window option;
+      mutable renderer: Sdl.renderer option;
       w: int;
       h: int;
     }
@@ -28,22 +28,45 @@ struct
     Sdl.create_renderer window >>= fun renderer ->
     Sdl.render_set_logical_size renderer w h >>= fun () ->
     {
-      window;
-      renderer;
+      window = Some window;
+      renderer = Some renderer;
       w;
       h;
     }
 
   let close window =
-    Sdl.destroy_window window.window
+    (
+      match window.window with
+        | None ->
+            ()
+        | Some w ->
+            Sdl.destroy_window w;
+            window.window <- None
+    );
+    (
+      match window.renderer with
+        | None ->
+            ()
+        | Some r ->
+            Sdl.destroy_renderer r;
+            window.renderer <- None
+    )
+
+  let renderer window =
+    match window.renderer with
+      | None ->
+          failwith "window has been closed"
+      | Some renderer ->
+          renderer
+
 end
 
 module Image =
 struct
   type t =
     {
-      renderer: Sdl.renderer;
-      texture: Sdl.texture;
+      window: Window.t;
+      mutable texture: Sdl.texture option;
       w: int;
       h: int;
     }
@@ -54,23 +77,36 @@ struct
   let load (window: Window.t) filename =
     if not (Sys.file_exists filename) then
       failwith ("no such file: " ^ filename);
-    let renderer = window.renderer in
+    let renderer = Window.renderer window in
     Tsdl_image.Image.load_texture renderer filename >>= fun texture ->
     Sdl.query_texture texture >>= fun (_, _, (w, h)) ->
     {
-      renderer;
-      texture;
+      window;
+      texture = Some texture;
       w;
       h;
     }
 
+  let destroy image =
+    match image.texture with
+      | None ->
+          ()
+      | Some texture ->
+          Sdl.destroy_texture texture;
+          image.texture <- None
+
   let draw ~src_x ~src_y ~w ~h ~x ~y image =
-    let w = min w image.w in
-    let h = min h image.h in
-    let src = Sdl.Rect.create 0 0 w h in
-    let dst = Sdl.Rect.create x y w h in
-    Sdl.render_copy ~src ~dst image.renderer image.texture >>= fun () ->
-    ()
+    match image.texture with
+      | None ->
+          failwith "image has been destroyed"
+      | Some texture ->
+          let renderer = Window.renderer image.window in
+          let w = min w image.w in
+          let h = min h image.h in
+          let src = Sdl.Rect.create 0 0 w h in
+          let dst = Sdl.Rect.create x y w h in
+          Sdl.render_copy ~src ~dst renderer texture >>= fun () ->
+          ()
 end
 
 module Widget = Widget.Make (Image)
@@ -93,9 +129,10 @@ let draw_rect renderer ~x ~y ~w ~h ~color ~fill =
   render renderer (Some rect) >>= fun () ->
   ()
 
-let run context ?clear ?(auto_close_window = true) make_ui =
+let run window ?clear ?(auto_close_window = true) make_ui =
   let widget_state = Widget.start () in
-  let { window; renderer; w; h }: Window.t = context in
+  let renderer = Window.renderer window in
+  let { w; h }: Window.t = window in
 
   try
     while true do
@@ -154,5 +191,5 @@ let run context ?clear ?(auto_close_window = true) make_ui =
       done
     done
   with Quit ->
-    if auto_close_window then Window.close context;
+    if auto_close_window then Window.close window;
     Sdl.quit ()

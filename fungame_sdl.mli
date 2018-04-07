@@ -15,15 +15,16 @@ sig
   val create: ?title: string -> ?w: int -> ?h: int -> unit -> t
 end
 
-(** {2 Images *)
+(** {2 Images} *)
 
 module Image:
 sig
   include Widget.IMAGE
   val load: Window.t -> string -> t
+  val destroy: t -> unit
 end
 
-(** {2 Widgets *)
+(** {2 Widgets} *)
 
 module Widget: Widget.WIDGET with type image = Image.t
 
