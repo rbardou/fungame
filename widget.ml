@@ -9,12 +9,6 @@ sig
     src_x: int -> src_y: int -> w: int -> h: int ->
     x: int -> y: int ->
     t -> unit
-
-  val draw_rect:
-    x: int -> y: int -> w: int -> h: int ->
-    color: (int * int * int * int) ->
-    fill: bool ->
-    unit
 end
 
 module type WIDGET =
@@ -68,7 +62,14 @@ sig
   type placed
 
   val place: w: int -> h: int -> t -> placed
-  val draw: x: int -> y: int -> placed -> unit
+
+  type draw_rect =
+    x: int -> y: int -> w: int -> h: int ->
+    color: (int * int * int * int) ->
+    fill: bool ->
+    unit
+
+  val draw: draw_rect -> x: int -> y: int -> placed -> unit
 
   type state
 
@@ -440,13 +441,19 @@ struct
   let place ~w ~h ui =
     place w h ui
 
-  let rec draw ~x ~y (widget: placed) =
+  type draw_rect =
+    x: int -> y: int -> w: int -> h: int ->
+    color: (int * int * int * int) ->
+    fill: bool ->
+    unit
+
+  let rec draw draw_rect ~x ~y (widget: placed) =
     let x = x + widget.x in
     let y = y + widget.y in
     (
       match widget.kind with
         | Rect rect ->
-            Image.draw_rect ~x ~y ~w: widget.w ~h: widget.h
+            draw_rect ~x ~y ~w: widget.w ~h: widget.h
               ~color: rect.color ~fill: rect.fill
         | Image image ->
             (* TODO: src_x and src_y *)
@@ -454,7 +461,7 @@ struct
         | _ ->
             ()
     );
-    List.iter (draw ~x ~y) widget.children
+    List.iter (draw draw_rect ~x ~y) widget.children
 
   let point_in_rect ~x ~y ~rx ~ry ~rw ~rh =
     x >= rx &&

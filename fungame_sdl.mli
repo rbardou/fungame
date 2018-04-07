@@ -4,12 +4,23 @@
     It provides widgets that you can combine to describe both how to draw
     your game and how inputs (especially mouse inputs) are interpreted. *)
 
+(** {2 Windows} *)
+
+module Window:
+sig
+  type t
+
+  (** Create a new window.
+      Note that multiple windows are not really supported. *)
+  val create: ?title: string -> ?w: int -> ?h: int -> unit -> t
+end
+
 (** {2 Images *)
 
 module Image:
 sig
   include Widget.IMAGE
-  val load: string -> t
+  val load: Window.t -> string -> t
 end
 
 (** {2 Widgets *)
@@ -31,9 +42,12 @@ val quit: unit -> 'a
     events. Then call [make_ui] again and start over, looping until
     the user exits.
 
-    If [clear] is specified, clear screen using given color before drawing. *)
+    If [clear] is specified, clear screen using given color before drawing.
+
+    If [auto_close_window] is [true], call [Window.close] at the end of the
+    main loop. Default is [true]. *)
 val run:
-  ?title: string ->
-  ?w: int -> ?h: int ->
+  Window.t ->
   ?clear: (int * int * int * int) ->
+  ?auto_close_window: bool ->
   (unit -> Widget.t list) -> unit

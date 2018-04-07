@@ -28,13 +28,6 @@ sig
     src_x: int -> src_y: int -> w: int -> h: int ->
     x: int -> y: int ->
     t -> unit
-
-  (** Draw a rectangle. *)
-  val draw_rect:
-    x: int -> y: int -> w: int -> h: int ->
-    color: (int * int * int * int) ->
-    fill: bool ->
-    unit
 end
 
 (** {2 Functor Output} *)
@@ -164,8 +157,15 @@ sig
       [w, h] give the available space.  *)
   val place: w: int -> h: int -> t -> placed
 
+  (** Function used to draw rects. *)
+  type draw_rect =
+    x: int -> y: int -> w: int -> h: int ->
+    color: (int * int * int * int) ->
+    fill: bool ->
+    unit
+
   (** Draw widgets. *)
-  val draw: x: int -> y: int -> placed -> unit
+  val draw: draw_rect -> x: int -> y: int -> placed -> unit
 
   (** {2 Events} *)
 

@@ -3,80 +3,73 @@ open Tsdl
 let (>>=) x f =
   match x with
     | Error (`Msg e) ->
-        Printf.printf "SDL error: %s" e;
         Sdl.log "SDL error: %s" e;
         Sdl.quit ();
         exit 1
     | Ok x ->
         f x
 
-let renderer = ref None
+module Window =
+struct
+  type t =
+    {
+      window: Sdl.window;
+      renderer: Sdl.renderer;
+      w: int;
+      h: int;
+    }
 
-let set_renderer x =
-  renderer := Some x
+  let create ?(title = "Fungame") ?(w = 640) ?(h = 480) () =
+    (* Initialize SDL. *)
+    Sdl.init Sdl.Init.video >>= fun () ->
+    (* fullscreen_desktop seems broken with older versions of SDL… *)
+    Sdl.create_window title ~w ~h
+      Sdl.Window.(opengl (* + fullscreen_desktop *)) >>= fun window ->
+    Sdl.create_renderer window >>= fun renderer ->
+    Sdl.render_set_logical_size renderer w h >>= fun () ->
+    {
+      window;
+      renderer;
+      w;
+      h;
+    }
 
-let get_renderer () =
-  match !renderer with
-    | None ->
-        failwith "get_renderer: SDL is not initialized"
-    | Some x ->
-        x
+  let close window =
+    Sdl.destroy_window window.window
+end
 
 module Image =
 struct
-  type image =
-    | To_load of string
-    | Loaded of Sdl.texture * int * int
+  type t =
+    {
+      renderer: Sdl.renderer;
+      texture: Sdl.texture;
+      w: int;
+      h: int;
+    }
 
-  type t = image ref
+  let width image = image.w
+  let height image = image.h
 
-  let width image =
-    match !image with
-      | To_load _ -> 0
-      | Loaded (_, w, _) -> w
-
-  let height image =
-    match !image with
-      | To_load _ -> 0
-      | Loaded (_, _, h) -> h
-
-  let load filename =
-    if Sys.file_exists filename then
-      ref (To_load filename)
-    else
-      failwith ("no such file: " ^ filename)
+  let load (window: Window.t) filename =
+    if not (Sys.file_exists filename) then
+      failwith ("no such file: " ^ filename);
+    let renderer = window.renderer in
+    Tsdl_image.Image.load_texture renderer filename >>= fun texture ->
+    Sdl.query_texture texture >>= fun (_, _, (w, h)) ->
+    {
+      renderer;
+      texture;
+      w;
+      h;
+    }
 
   let draw ~src_x ~src_y ~w ~h ~x ~y image =
-    let renderer = get_renderer () in
-    let texture, image_w, image_h =
-      match !image with
-        | To_load filename ->
-            Tsdl_image.Image.load_texture renderer filename >>= fun texture ->
-            Sdl.query_texture texture >>= fun (_, _, (w, h)) ->
-            image := Loaded (texture, w, h);
-            texture, w, h
-        | Loaded (texture, image_w, image_h) ->
-            texture, image_w, image_h
-    in
-    let w = min w image_w in
-    let h = min h image_h in
+    let w = min w image.w in
+    let h = min h image.h in
     let src = Sdl.Rect.create 0 0 w h in
     let dst = Sdl.Rect.create x y w h in
-    Sdl.render_copy ~src ~dst renderer texture >>= fun () ->
-    ()
-
-  let draw_rect ~x ~y ~w ~h ~color ~fill =
-    let renderer = get_renderer () in
-    let r, g, b, a = color in
-    Sdl.set_render_draw_color renderer r g b a >>= fun () ->
-    let render =
-      if fill then
-        Sdl.render_fill_rect
-      else
-        Sdl.render_draw_rect
-    in
-    let rect = Sdl.Rect.create x y w h in
-    render renderer (Some rect) >>= fun () ->
+    Sdl.render_copy ~src ~dst image.renderer image.texture >>= fun () ->
     ()
 end
 
@@ -87,17 +80,22 @@ exception Quit
 let quit () =
   raise Quit
 
-let run ?(title = "Fungame") ?(w = 640) ?(h = 480) ?clear make_ui =
-  (* Initialize SDL. *)
-  Sdl.init Sdl.Init.video >>= fun () ->
-  (* fullscreen_desktop seems broken with older versions of SDL… *)
-  Sdl.create_window title ~w ~h
-    Sdl.Window.(opengl (* + fullscreen_desktop *)) >>= fun window ->
-  Sdl.create_renderer window >>= fun renderer ->
-  set_renderer renderer;
-  Sdl.render_set_logical_size renderer w h >>= fun () ->
+let draw_rect renderer ~x ~y ~w ~h ~color ~fill =
+  let r, g, b, a = color in
+  Sdl.set_render_draw_color renderer r g b a >>= fun () ->
+  let render =
+    if fill then
+      Sdl.render_fill_rect
+    else
+      Sdl.render_draw_rect
+  in
+  let rect = Sdl.Rect.create x y w h in
+  render renderer (Some rect) >>= fun () ->
+  ()
 
+let run context ?clear ?(auto_close_window = true) make_ui =
   let widget_state = Widget.start () in
+  let { window; renderer; w; h }: Window.t = context in
 
   try
     while true do
@@ -112,7 +110,7 @@ let run ?(title = "Fungame") ?(w = 640) ?(h = 480) ?clear make_ui =
       );
 
       let widget = Widget.place w h (Widget.box (make_ui ())) in
-      Widget.draw ~x: 0 ~y: 0 widget;
+      Widget.draw (draw_rect renderer) ~x: 0 ~y: 0 widget;
 
       Sdl.render_present renderer;
 
@@ -156,5 +154,5 @@ let run ?(title = "Fungame") ?(w = 640) ?(h = 480) ?clear make_ui =
       done
     done
   with Quit ->
-    Sdl.destroy_window window;
+    if auto_close_window then Window.close context;
     Sdl.quit ()
