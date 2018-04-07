@@ -76,8 +76,20 @@ sig
     val is_under_cursor: t -> bool
   end
 
-  (** Make a button. *)
+  (** Make a button.
+
+      Buttons can be clicked.
+      A click starts when mouse button [1] is pressed on the widget.
+      [is_down] is [true] until this mouse button is released.
+      If the mouse button is released and the cursor is still on
+      the widget, [on_click] is triggered. *)
   val button: Button.t -> t list -> t
+
+  (** Make a widget capable of receiving right click events.
+
+      Contrary to left clicks on buttons, right clicks are triggered
+      immediately when mouse button [3] is pressed, so no state is needed. *)
+  val right_clickable: (unit -> unit) -> t -> t
 
   (** Group some widgets together. *)
   val box: t list -> t
@@ -166,10 +178,10 @@ sig
   (** Event functions return [true] if they actually used the event. *)
 
   (** React to a mouse down event. *)
-  val mouse_down: state -> x: int -> y: int -> placed -> bool
+  val mouse_down: state -> button: int -> x: int -> y: int -> placed -> bool
 
   (** React to a mouse up event. *)
-  val mouse_up: state -> x: int -> y: int -> placed -> bool
+  val mouse_up: state -> button: int -> x: int -> y: int -> placed -> bool
 
   (** React to a mouse move event. *)
   val mouse_move: state -> x: int -> y: int -> placed -> bool

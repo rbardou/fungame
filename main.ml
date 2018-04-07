@@ -28,7 +28,8 @@ let () =
               ~w: 10 ~h: 10
               ();
           ];
-          rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ();
+          rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ()
+          |> right_clickable quit;
           rect ~fill: true ~color: (200, 200, 0, 255) ~w: 40 ~h: 20 ();
         ]
         |> right;

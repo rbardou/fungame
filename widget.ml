@@ -39,6 +39,7 @@ sig
   end
 
   val button: Button.t -> t list -> t
+  val right_clickable: (unit -> unit) -> t -> t
 
   val box: t list -> t
 
@@ -72,8 +73,8 @@ sig
   type state
 
   val start: unit -> state
-  val mouse_down: state -> x: int -> y: int -> placed -> bool
-  val mouse_up: state -> x: int -> y: int -> placed -> bool
+  val mouse_down: state -> button: int -> x: int -> y: int -> placed -> bool
+  val mouse_up: state -> button: int -> x: int -> y: int -> placed -> bool
   val mouse_move: state -> x: int -> y: int -> placed -> bool
 end
 
@@ -115,6 +116,7 @@ struct
     | Rect of rect * int option * int option (* rect, w, h *)
     | Image of image
     | Button of t * Button.t
+    | Right_clickable of t * (unit -> unit)
     | Margin of t * int * int * int * int (* child, left, top, right, bottom *)
     | Box of t list
     | Hbox of t list
@@ -134,6 +136,9 @@ struct
 
   let button state children =
     Button (box children, state)
+
+  let right_clickable on_click child =
+    Right_clickable (child, on_click)
 
   let margin
       ?(left = 0) ?(top = 0) ?(right = 0) ?(bottom = 0) ?(all = 0)
@@ -195,6 +200,7 @@ struct
     | Rect of rect
     | Image of image
     | Button of Button.t
+    | Right_clickable of (unit -> unit)
 
   type placed =
     {
@@ -234,18 +240,24 @@ struct
             }
 
         | Button (child, state) ->
-            let child =
-              place
-                parent_w
-                parent_h
-                child
-            in
+            let child = place parent_w parent_h child in
             {
               x = 0;
               y = 0;
               w = child.w;
               h = child.h;
               kind = Button state;
+              children = [ child ];
+            }
+
+        | Right_clickable (child, on_click) ->
+            let child = place parent_w parent_h child in
+            {
+              x = 0;
+              y = 0;
+              w = child.w;
+              h = child.h;
+              kind = Right_clickable on_click;
               children = [ child ];
             }
 
@@ -477,19 +489,26 @@ struct
       under_cursor = None;
     }
 
-  let rec mouse_down (state: state) ~parent_x ~parent_y ~x ~y (widget: placed) =
+  let left_mouse_button = 1
+  let right_mouse_button = 3
+
+  let rec mouse_down (state: state) ~parent_x ~parent_y ~button ~x ~y
+      (widget: placed) =
     if point_in_widget ~x ~y widget then
       match widget.kind with
-        | Button button ->
+        | Button button_state when button = left_mouse_button ->
             state.being_clicked <-
               Button (
-                button,
+                button_state,
                 parent_x + widget.x,
                 parent_y + widget.y,
                 widget.w,
                 widget.h
               );
-            button.is_down <- true;
+            button_state.is_down <- true;
+            true
+        | Right_clickable on_click when button = right_mouse_button ->
+            on_click ();
             true
         | _ ->
             let rec loop = function
@@ -501,6 +520,7 @@ struct
                       state
                       ~parent_x: (parent_x + widget.x)
                       ~parent_y: (parent_y + widget.y)
+                      ~button
                       ~x: (x - widget.x)
                       ~y: (y - widget.y)
                       head
@@ -515,20 +535,20 @@ struct
 
   let mouse_down = mouse_down ~parent_x: 0 ~parent_y: 0
 
-  let rec mouse_up (state: state) ~x ~y (widget: placed) =
+  let rec mouse_up (state: state) ~button ~x ~y (widget: placed) =
     match state.being_clicked with
-      | None ->
-          false
-      | Button (button, rx, ry, rw, rh) ->
+      | Button (button_state, rx, ry, rw, rh) when button = left_mouse_button ->
           state.being_clicked <- None;
-          button.is_down <- false;
+          button_state.is_down <- false;
           if point_in_rect ~x ~y ~rx ~ry ~rw ~rh then
             (
-              button.on_click ();
+              button_state.on_click ();
               true
             )
           else
             false
+      | _ ->
+          false
 
   let rec mouse_move (state: state) ~x ~y (widget: placed) =
     if point_in_widget ~x ~y widget then

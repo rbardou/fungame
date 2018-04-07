@@ -109,13 +109,15 @@ let run ?(title = "Fungame") ?(w = 640) ?(h = 480) ?clear make_ui =
         else if typ = Sdl.Event.mouse_button_down then
           let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
           let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-          let _: bool = Widget.mouse_down widget_state ~x ~y widget in
+          let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+          let _: bool = Widget.mouse_down widget_state ~button ~x ~y widget in
           ()
 
         else if typ = Sdl.Event.mouse_button_up then
           let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
           let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-          let _: bool = Widget.mouse_up widget_state ~x ~y widget in
+          let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+          let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
           ()
 
         else if typ = Sdl.Event.mouse_motion then
