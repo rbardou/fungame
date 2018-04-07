@@ -1,0 +1,3 @@
+true: warn(-30)
+true: annot
+true: package(tsdl)
