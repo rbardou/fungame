@@ -2,22 +2,14 @@ module type IMAGE =
 sig
   type t
 
-  (** Get the width of an image. *)
   val width: t -> int
-
-  (** Get the height of an image. *)
   val height: t -> int
 
-  (** Draw an image.
-
-      [src_x, src_y, w, h] determines the part of the image to be drawn.
-      [x, y] are the destination position. *)
   val draw:
     src_x: int -> src_y: int -> w: int -> h: int ->
     x: int -> y: int ->
     t -> unit
 
-  (** Draw a rectangle. *)
   val draw_rect:
     x: int -> y: int -> w: int -> h: int ->
     color: (int * int * int * int) ->
@@ -30,103 +22,64 @@ sig
   type image
   type t
 
-  (** Make a widget which draws as a rectangle.
-
-      Take all available width unless [w] is specified.
-      Take all available height unless [h] is specified.
-
-      If [fill] is [true], draw the inside of the rectangle as well.
-      Default is [false].
-
-      Default [color] is red ([255, 0, 0, 255]). *)
   val rect:
     ?w: int -> ?h: int ->
     ?color: (int * int * int * int) ->
     ?fill: bool ->
     unit -> t
 
-  (** Make a widget which draws as an image. *)
   val image: image -> t
 
-  (** Group some widgets together. *)
+  module Button:
+  sig
+    type t
+    val create: (unit -> unit) -> t
+    val is_down: t -> bool
+    val is_under_cursor: t -> bool
+  end
+
+  val button: Button.t -> t list -> t
+
   val box: t list -> t
 
-  (** Box widgets (like [box]) and add margins. *)
   val margin:
     ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t -> t
 
-  (** [margin children] is the same as [margin (box children)]. *)
   val margin_box:
     ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t list -> t
 
-  (** Place some widgets next to each other horizontally and box them. *)
   val hbox: t list -> t
-
-  (** Place some widgets next to each other vertically and box them. *)
   val vbox: t list -> t
-
-  (** Split a widget into a left and a right part at a given ratio. *)
   val hsplit: float -> left: t -> right: t -> t
-
-  (** Split a widget into a top and a bottom part at a given ratio. *)
   val vsplit: float -> top: t -> bottom: t -> t
-
-  (** Split a widget horizontally (like [hsplit]) equally. *)
   val hsplitl: t list -> t
-
-  (** Split a widget vertically (like [vsplit]) equally. *)
   val vsplitl: t list -> t
-
-  (** Place a widget relatively to its parent.
-
-      For instance, [ratio ~h: 0.5 ~v: 1. child] places the center-bottom part
-      of [child] at the center-bottom part of its parent.
-
-      If [h] is specified, return a widget with the width of its parent
-      (so that the child can be placed inside this width).
-      Similarly, if [v] is specified, return a widget with the height of its
-      parent.
-
-      As a special case, [ratio ~h (ratio ~v child)] and
-      [ratio ~v (ratio ~h child)] are modified to actually be
-      [ratio ~h ~v child]. This means you can write [widget |> center |> bottom]
-      for instance. *)
   val ratio: ?h: float -> ?v: float -> t -> t
-
-  (** Same as [ratio ~h: 0.]. *)
   val left: t -> t
-
-  (** Same as [ratio ~h: 0.5]. *)
   val center: t -> t
-
-  (** Same as [ratio ~h: 1.]. *)
   val right: t -> t
-
-  (** Same as [ratio ~v: 0.]. *)
   val top: t -> t
-
-  (** Same as [ratio ~v: 0.5]. *)
   val middle: t -> t
-
-  (** Same as [ratio ~v: 1.]. *)
   val bottom: t -> t
 
-  (** Widgets whose placement has been computed. *)
   type placed
 
-  (** Compute placement of widgets.
-
-      [w, h] give the available space.  *)
   val place: w: int -> h: int -> t -> placed
-
-  (** Draw widgets. *)
   val draw: x: int -> y: int -> placed -> unit
+
+  type state
+
+  val start: unit -> state
+  val mouse_down: state -> x: int -> y: int -> placed -> bool
+  val mouse_up: state -> x: int -> y: int -> placed -> bool
+  val mouse_move: state -> x: int -> y: int -> placed -> bool
 end
 
 module Make (Image: IMAGE): WIDGET with type image = Image.t =
 struct
+
   type image = Image.t
 
   type rect =
@@ -135,9 +88,33 @@ struct
       fill: bool;
     }
 
+  module Button =
+  struct
+    type t =
+      {
+        mutable is_down: bool;
+        mutable is_under_cursor: bool;
+        on_click: unit -> unit;
+      }
+
+    let create on_click =
+      {
+        is_down = false;
+        is_under_cursor = false;
+        on_click;
+      }
+
+    let is_down button =
+      button.is_down
+
+    let is_under_cursor button =
+      button.is_under_cursor
+  end
+
   type t =
     | Rect of rect * int option * int option (* rect, w, h *)
     | Image of image
+    | Button of t * Button.t
     | Margin of t * int * int * int * int (* child, left, top, right, bottom *)
     | Box of t list
     | Hbox of t list
@@ -154,6 +131,9 @@ struct
 
   let box children =
     Box children
+
+  let button state children =
+    Button (box children, state)
 
   let margin
       ?(left = 0) ?(top = 0) ?(right = 0) ?(bottom = 0) ?(all = 0)
@@ -214,6 +194,7 @@ struct
     | Box
     | Rect of rect
     | Image of image
+    | Button of Button.t
 
   type placed =
     {
@@ -250,6 +231,22 @@ struct
               h = Image.height image;
               kind = Image image;
               children = [];
+            }
+
+        | Button (child, state) ->
+            let child =
+              place
+                parent_w
+                parent_h
+                child
+            in
+            {
+              x = 0;
+              y = 0;
+              w = child.w;
+              h = child.h;
+              kind = Button state;
+              children = [ child ];
             }
 
         | Margin (child, left, top, right, bottom) ->
@@ -436,14 +433,137 @@ struct
     let y = y + widget.y in
     (
       match widget.kind with
-        | Box ->
-            ()
         | Rect rect ->
             Image.draw_rect ~x ~y ~w: widget.w ~h: widget.h
               ~color: rect.color ~fill: rect.fill
         | Image image ->
             (* TODO: src_x and src_y *)
             Image.draw ~src_x: 0 ~src_y: 0 ~x ~y ~w: widget.w ~h: widget.h image
+        | _ ->
+            ()
     );
-    List.iter (draw ~x ~y) widget.children;
+    List.iter (draw ~x ~y) widget.children
+
+  let point_in_rect ~x ~y ~rx ~ry ~rw ~rh =
+    x >= rx &&
+    x < rx + rw &&
+    y >= ry &&
+    y < ry + rh
+
+  let point_in_widget ~x ~y (widget: placed) =
+    point_in_rect x y widget.x widget.y widget.w widget.h
+
+  (* We store absolute coordinates at the time the button was pressed.
+     We assume the widget has not moved when the button is released. *)
+  type being_clicked =
+    | None
+    | Button of Button.t * int * int * int * int
+
+  type under_cursor =
+    | None
+    | Button of Button.t
+
+  (* We could also iterate over the widget tree to find widgets, but this
+     would probably be significantly less efficient. *)
+  type state =
+    {
+      mutable being_clicked: being_clicked;
+      mutable under_cursor: under_cursor;
+    }
+
+  let start () =
+    {
+      being_clicked = None;
+      under_cursor = None;
+    }
+
+  let rec mouse_down (state: state) ~parent_x ~parent_y ~x ~y (widget: placed) =
+    if point_in_widget ~x ~y widget then
+      match widget.kind with
+        | Button button ->
+            state.being_clicked <-
+              Button (
+                button,
+                parent_x + widget.x,
+                parent_y + widget.y,
+                widget.w,
+                widget.h
+              );
+            button.is_down <- true;
+            true
+        | _ ->
+            let rec loop = function
+              | [] ->
+                  false
+              | head :: tail ->
+                  if
+                    mouse_down
+                      state
+                      ~parent_x: (parent_x + widget.x)
+                      ~parent_y: (parent_y + widget.y)
+                      ~x: (x - widget.x)
+                      ~y: (y - widget.y)
+                      head
+                  then
+                    true
+                  else
+                    loop tail
+            in
+            loop widget.children
+    else
+      false
+
+  let mouse_down = mouse_down ~parent_x: 0 ~parent_y: 0
+
+  let rec mouse_up (state: state) ~x ~y (widget: placed) =
+    match state.being_clicked with
+      | None ->
+          false
+      | Button (button, rx, ry, rw, rh) ->
+          state.being_clicked <- None;
+          button.is_down <- false;
+          if point_in_rect ~x ~y ~rx ~ry ~rw ~rh then
+            (
+              button.on_click ();
+              true
+            )
+          else
+            false
+
+  let rec mouse_move (state: state) ~x ~y (widget: placed) =
+    if point_in_widget ~x ~y widget then
+      match widget.kind with
+        | Button button ->
+            state.under_cursor <- Button button;
+            button.is_under_cursor <- true;
+            true
+        | _ ->
+            let rec loop = function
+              | [] ->
+                  false
+              | head :: tail ->
+                  if
+                    mouse_move
+                      state
+                      ~x: (x - widget.x)
+                      ~y: (y - widget.y)
+                      head
+                  then
+                    true
+                  else
+                    loop tail
+            in
+            loop widget.children
+    else
+      false
+
+  let mouse_move (state: state) ~x ~y (widget: placed) =
+    (
+      match state.under_cursor with
+        | None -> ()
+        | Button button -> button.is_under_cursor <- false
+    );
+    state.under_cursor <- None;
+    mouse_move state ~x ~y widget
+
 end

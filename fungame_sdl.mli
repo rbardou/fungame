@@ -18,6 +18,11 @@ module Widget: Widget.WIDGET with type image = Image.t
 
 (** {2 Main Loop} *)
 
+(** Exit the main loop.
+
+    Call this from widget events. *)
+val quit: unit -> 'a
+
 (** Run the game.
 
     Usage: [run make_ui]

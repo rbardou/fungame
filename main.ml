@@ -1,6 +1,17 @@
 open Fungame_sdl
 open Widget
 
+let quit_button = Button.create quit
+
+let button_color button =
+  if Button.is_under_cursor button then
+    if Button.is_down button then
+      100, 50, 0, 255
+    else
+      250, 150, 0, 255
+  else
+    200, 100, 0, 255
+
 let () =
   run @@ fun () ->
   [
@@ -10,7 +21,13 @@ let () =
       margin_box ~left: 20 ~top: 15 ~right: 10 ~bottom: 5 [
         rect ~fill: true ~color: (50, 255, 50, 255) ();
         hbox [
-          rect ~fill: true ~color: (200, 100, 0, 255) ~w: 10 ~h: 10 ();
+          button quit_button [
+            rect
+              ~fill: true
+              ~color: (button_color quit_button)
+              ~w: 10 ~h: 10
+              ();
+          ];
           rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ();
           rect ~fill: true ~color: (200, 200, 0, 255) ~w: 40 ~h: 20 ();
         ]

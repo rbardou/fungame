@@ -1,5 +1,15 @@
 (** IO-independant simple widget library. *)
 
+(** {2 Widget States} *)
+
+(** Widget states such as [Button.t] contain information which should
+    stay even when the widget tree is being rebuilt so that events
+    work properly. So you should declare them once, not each time you
+    rebuild the tree. You can re-create them if you want to reset
+    their state though. *)
+
+(** {2 Functor Input} *)
+
 module type IMAGE =
 sig
   type t
@@ -27,6 +37,8 @@ sig
     unit
 end
 
+(** {2 Functor Output} *)
+
 module type WIDGET =
 sig
   type image
@@ -49,6 +61,23 @@ sig
 
   (** Make a widget which draws as an image. *)
   val image: image -> t
+
+  module Button:
+  sig
+    type t
+
+    (** Create a new button state, given an [on_click] event. *)
+    val create: (unit -> unit) -> t
+
+    (** Test whether a button is being pressed. *)
+    val is_down: t -> bool
+
+    (** Test whether a button is under the mouse cursor. *)
+    val is_under_cursor: t -> bool
+  end
+
+  (** Make a button. *)
+  val button: Button.t -> t list -> t
 
   (** Group some widgets together. *)
   val box: t list -> t
@@ -125,6 +154,27 @@ sig
 
   (** Draw widgets. *)
   val draw: x: int -> y: int -> placed -> unit
+
+  (** {2 Events} *)
+
+  (** Global widget state. *)
+  type state
+
+  (** Create a new global widget state. *)
+  val start: unit -> state
+
+  (** Event functions return [true] if they actually used the event. *)
+
+  (** React to a mouse down event. *)
+  val mouse_down: state -> x: int -> y: int -> placed -> bool
+
+  (** React to a mouse up event. *)
+  val mouse_up: state -> x: int -> y: int -> placed -> bool
+
+  (** React to a mouse move event. *)
+  val mouse_move: state -> x: int -> y: int -> placed -> bool
 end
+
+(** {2 Functor} *)
 
 module Make (Image: IMAGE): WIDGET with type image = Image.t
