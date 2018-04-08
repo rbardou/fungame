@@ -7,7 +7,10 @@ let font = Font.load window
 
 let sansation = font "sansation/Sansation_Regular.ttf" 24
 let bat = img "bat.png"
-let quit_image = Font.render sansation "Quit"
+let quit_text = Font.render sansation "Quit"
+let wrapped_text =
+  Font.render ~mode: (Wrapped 100) ~color: (255, 0, 0, 255) sansation
+    "Text can be wrapped."
 let kick_drum_1 = Sound.load "samples/Kick-Drum-1.wav"
 
 let quit_button = Button.create quit
@@ -55,10 +58,10 @@ let () =
             rect
               ~fill: true
               ~color: (button_color quit_button)
-              ~w: (Image.width quit_image + 10)
-              ~h: (Image.height quit_image + 10)
+              ~w: (Image.width quit_text + 10)
+              ~h: (Image.height quit_text + 10)
               ();
-            margin ~all: 5 (image quit_image);
+            margin ~all: 5 (image quit_text);
           ];
           rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ()
           |> right_clickable play_sound;
@@ -82,4 +85,5 @@ let () =
         rect ~fill: true ~color: (0, 0, 0, 255) ();
       ]
     ];
+    image wrapped_text |> bottom |> right;
   ]
