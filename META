@@ -1,0 +1,5 @@
+description = "Fungame game development library, SDL version."
+version = "0.1"
+archive(byte) = "fungame_sdl.cma"
+archive(native) = "fungame_sdl.cmxa"
+requires = "tsdl tsdl_image tsdl_ttf tsdl_mixer"
