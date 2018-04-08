@@ -1,8 +1,4 @@
-(** Simple library to make games using SDL. *)
-
-(** This library handles inputs and outputs.
-    It provides widgets that you can combine to describe both how to draw
-    your game and how inputs (especially mouse inputs) are interpreted. *)
+(** Make games using SDL. *)
 
 (** {2 Windows} *)
 

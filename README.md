@@ -1,6 +1,6 @@
 # Fungame
 
-Fungame is a library which provides simple game development tools for OCaml.
+Fungame is a library which provides game development tools for OCaml.
 
 Currently, Fungame is based on SDL, but the goal is to be abstract enough
 that one could make a Javascript version using `js_of_ocaml` and canvas.
@@ -58,3 +58,5 @@ too lazy to find a license which did not had it.
 
 - better main loop, with optional fps parameter
 - `Fungame_js`
+- support other sound formats
+- maybe music should be handled differently than regular sounds
