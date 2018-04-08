@@ -15,6 +15,42 @@ sig
   val create: ?title: string -> ?w: int -> ?h: int -> unit -> t
 end
 
+(** {2 Keys} *)
+
+module Key:
+sig
+  type t
+
+  (** Key scan codes.
+
+      Scan codes are independent of the keyboard layout; they denote
+      the physical location of the key on the keyboard. *)
+  type scan_code = Fungame_scan_code.t
+
+  (** Key codes.
+
+      Key codes depend on the keyboard layout. *)
+  type key_code = Fungame_key_code.t
+
+  (** Show the key code of a key. *)
+  val show: t -> string
+
+  (** Show the scan code of a key. *)
+  val show_scan_code: t -> string
+
+  (** Get the scan code of a key. *)
+  val scan_code: t -> scan_code
+
+  (** Get the key code of a key. *)
+  val key_code: t -> key_code
+
+  (** Make a key from a scan code. *)
+  val of_scan_code: scan_code -> t
+
+  (** Make a key from a key code. *)
+  val of_key_code: key_code -> t
+end
+
 (** {2 Images} *)
 
 module Image:
@@ -141,4 +177,7 @@ val run:
   ?clear: (int * int * int * int) ->
   ?auto_close_window: bool ->
   ?auto_close_sound: bool ->
+  ?on_key_down: (Key.t -> unit) ->
+  ?on_key_repeat: (Key.t -> unit) ->
+  ?on_key_up: (Key.t -> unit) ->
   (unit -> Widget.t list) -> unit

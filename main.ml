@@ -24,8 +24,20 @@ let button_color button =
 let play_sound () =
   Sound.play ~loops: 2 kick_drum_1
 
+let key_event kind key =
+  print_endline (kind ^ " " ^ Key.show key ^ " / " ^ Key.show_scan_code key);
+  match Key.scan_code key with
+    | Space -> if kind <> "UP" then Sound.play kick_drum_1
+    | Escape -> quit ()
+    | _ -> ()
+
 let () =
-  run window @@ fun () ->
+  run
+    ~on_key_down: (key_event "DOWN")
+    ~on_key_repeat: (key_event "REPEAT")
+    ~on_key_up: (key_event "UP")
+    window
+  @@ fun () ->
   [
     rect ~fill: true ~color: (50, 50, 50, 255) ();
     hsplitl [

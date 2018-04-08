@@ -1,5 +1,9 @@
 (** IO-independant simple widget library. *)
 
+(** Currently, keyboard is not supported as this library is designed
+    for game development and keyboard is usually not used to navigate
+    widgets in games like in desktop applications. *)
+
 (** {2 Widget States} *)
 
 (** Widget states such as [Button.t] contain information which should
