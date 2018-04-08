@@ -56,6 +56,9 @@ too lazy to find a license which did not had it.
 
 ## TODO
 
-- `Fungame_js`
-- support other sound formats
+- JS: see source file
+- SDL: support other sound formats
 - maybe music should be handled differently than regular sounds
+- reset the Key.pressed set when window loses focus
+- unify asset directory management
+  (maybe have an equivalent of `Filename.dirname Sys.executable_name`?)

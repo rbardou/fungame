@@ -25,6 +25,8 @@ end
 module Scan_code = Fungame_scan_code
 module Key_code = Fungame_key_code
 
+module Scan_code_set = Set.Make (Scan_code)
+
 module Int_string_pair =
 struct
   type t = int * string
@@ -148,8 +150,10 @@ struct
       | exception Not_found -> { scan_code = Unknown; key_code = Unknown }
       | key -> key
 
+  let pressed = ref Scan_code_set.empty
+
   let is_down key =
-    false (* TODO *)
+    Scan_code_set.mem key.scan_code !pressed
 end
 
 module Image =
@@ -242,7 +246,7 @@ struct
 
   let run (window: Window.t)
       ?clear
-      ?(auto_close_window = true) (* TODO *)
+      ?(auto_close_window = true)
       ?(auto_close_sound = true) (* TODO *)
       ?(on_key_down = fun _ -> ())
       ?(on_key_repeat = fun _ -> ()) (* TODO *)
@@ -312,12 +316,16 @@ struct
 
     let on_key_down (event: Dom_html.keyboardEvent Js.t) =
       (* Js_of_ocaml does not implement the repeat property, it seems. *)
-      on_key_down (key_of_event event);
+      let key = key_of_event event in
+      Key.pressed := Scan_code_set.add key.scan_code !Key.pressed;
+      on_key_down key;
       capture_event event true
     in
 
     let on_key_up (event: Dom_html.keyboardEvent Js.t) =
-      on_key_up (key_of_event event);
+      let key = key_of_event event in
+      Key.pressed := Scan_code_set.remove key.scan_code !Key.pressed;
+      on_key_up key;
       capture_event event true
     in
 
@@ -397,6 +405,7 @@ struct
       let _: Dom.node Js.t = body##appendChild((canvas :> Dom.node Js.t)) in
 
       (* Start the main loop. *)
+      Key.pressed := Scan_code_set.empty;
       window.context <- Some (canvas##getContext(Dom_html._2d_));
       request_animation_frame canvas;
 
