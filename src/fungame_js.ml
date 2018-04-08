@@ -7,6 +7,7 @@ struct
     {
       w: int;
       h: int;
+      mutable context: Dom_html.canvasRenderingContext2D Js.t option;
     }
 
   let create ?(title = "Fungame") ?(w = 640) ?(h = 480) () =
@@ -14,6 +15,7 @@ struct
     {
       w;
       h;
+      context = None; (* filled by [run] in [on_load] *)
     }
 end
 
@@ -153,27 +155,50 @@ struct
     {
       w: int;
       h: int;
+      window: Window.t;
+      mutable image: Dom_html.imageElement Js.t option;
     }
 
   let load (window: Window.t) filename =
-    { w = 64; h = 64 } (* TODO *)
+    (* TODO: fail gracefully if file does not exist *)
+    let image = Dom_html.(createImg document) in
+    image##src <- Js.string filename;
+    {
+      w = image##width;
+      h = image##height;
+      window;
+      image = Some image;
+    }
 
   let destroy image =
-    () (* TODO *)
+    image.image <- None
 
   let width image = image.w
   let height image = image.h
 
   let draw ~src_x ~src_y ~w ~h ~x ~y image =
-    () (* TODO *)
+    match image.image, image.window.context with
+      | None, _ | _, None ->
+          ()
+      | Some img, Some context ->
+          let w = float w in
+          let h = float h in
+          context##drawImage_full(
+            img,
+            float src_x, float src_y, w, h,
+            float x, float y, w, h
+          )
 end
 
 module Font =
 struct
-  type t = unit (* TODO *)
+  type t =
+    {
+      window: Window.t;
+    }
 
   let load (window: Window.t) filename size =
-    () (* TODO *)
+    { window } (* TODO *)
 
   let destroy image =
     () (* TODO *)
@@ -186,7 +211,7 @@ struct
 
   let render ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
       font text =
-    { Image.w = 64; h = 64 } (* TODO *)
+    { Image.w = 64; h = 64; window = font.window; image = None } (* TODO *)
 end
 
 module Sound =
@@ -281,7 +306,6 @@ struct
 
     let on_key_down (event: Dom_html.keyboardEvent Js.t) =
       (* Js_of_ocaml does not implement the repeat property, it seems. *)
-      let repeat = false in (* TODO *)
       on_key_down (key_of_event event);
       capture_event event true
     in
@@ -348,6 +372,7 @@ struct
       let _: Dom.node Js.t = body##appendChild((canvas :> Dom.node Js.t)) in
 
       (* Start the main loop. *)
+      window.context <- Some (canvas##getContext(Dom_html._2d_));
       request_animation_frame canvas;
 
       Js._true
