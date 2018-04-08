@@ -190,6 +190,6 @@ sig
     (** Exit the main loop.
 
         Call this from event handlers or from [update]. *)
-    val quit: unit -> 'a
+    val quit: unit -> unit
   end
 end

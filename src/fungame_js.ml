@@ -17,6 +17,9 @@ struct
       h;
       context = None; (* filled by [run] in [on_load] *)
     }
+
+  let close window =
+    window.context <- None
 end
 
 module Scan_code = Fungame_scan_code
@@ -232,10 +235,13 @@ struct
 
   exception Quit
 
-  let quit () = raise Quit (* TODO *)
+  let continue = ref true
+
+  let quit () =
+    continue := false
 
   let run (window: Window.t)
-      ?clear (* TODO *)
+      ?clear
       ?(auto_close_window = true) (* TODO *)
       ?(auto_close_sound = true) (* TODO *)
       ?(on_key_down = fun _ -> ())
@@ -335,12 +341,31 @@ struct
         (now: float) =
       let context = canvas##getContext(Dom_html._2d_) in
       widget := Widget.place window.w window.h (Widget.box (make_ui ()));
+      (
+        match clear with
+          | None ->
+              ()
+          | Some color ->
+              draw_rect context ~x: 0 ~y: 0 ~w: canvas##width ~h: canvas##height
+                ~color ~fill: true
+      );
       Widget.draw (draw_rect context) ~x: 0 ~y: 0 !widget;
       (* TODO: sleep? *)
       let elapsed = (now -. !last_frame_time) *. 1000. |> int_of_float in
       last_frame_time := now;
       update elapsed;
-      request_animation_frame canvas
+      if !continue then
+        request_animation_frame canvas
+      else (
+        canvas##onmousemove <- Dom.handler (fun _ -> Js._true);
+        canvas##onmousedown <- Dom.handler (fun _ -> Js._true);
+        canvas##onmouseup <- Dom.handler (fun _ -> Js._true);
+        Dom_html.window##onkeydown <- Dom.handler (fun _ -> Js._true);
+        Dom_html.window##onkeyup <- Dom.handler (fun _ -> Js._true);
+        draw_rect context ~x: 0 ~y: 0 ~w: canvas##width ~h: canvas##height
+          ~color: (255, 255, 255, 255) ~fill: true;
+        if auto_close_window then Window.close window;
+      )
 
     and request_animation_frame canvas =
       let callback = Js.wrap_callback (on_animation_frame canvas) in
