@@ -1,50 +1,62 @@
-LIBNAME = fungame_sdl
+LIBNAME_SDL = fungame_sdl
+LIBNAME_JS = fungame_js
 
 OCAMLBUILD := ocamlbuild
 OCAMLBUILD := $(OCAMLBUILD) -no-links
 OCAMLBUILD := $(OCAMLBUILD) -use-ocamlfind
 OCAMLBUILD := $(OCAMLBUILD) -I src
 
-FILES := META
-FILES := $(FILES) $(wildcard _build/$(LIBNAME).cma)
-FILES := $(FILES) $(wildcard _build/$(LIBNAME).cmxa)
-FILES := $(FILES) $(wildcard _build/src/*.a)
-FILES := $(FILES) $(wildcard _build/src/*.cmi)
-FILES := $(FILES) $(wildcard _build/src/*.cmx)
-FILES := $(FILES) $(wildcard _build/src/*.cma)
-FILES := $(FILES) $(wildcard _build/src/*.cmxa)
+FILES_SDL := META
+FILES_SDL := $(FILES) $(wildcard _build/$(LIBNAME_SDL).cma)
+FILES_SDL := $(FILES) $(wildcard _build/$(LIBNAME_SDL).cmxa)
+FILES_SDL := $(FILES) $(wildcard _build/src/*.a)
+FILES_SDL := $(FILES) $(wildcard _build/src/*.cmi)
+FILES_SDL := $(FILES) $(wildcard _build/src/*.cmx)
+FILES_SDL := $(FILES) $(wildcard _build/src/*.cma)
+FILES_SDL := $(FILES) $(wildcard _build/src/*.cmxa)
 
 default: lib
 
 all: lib example doc
 
-lib: byte native
+lib: byte native js
 
 byte:
-	$(OCAMLBUILD) $(LIBNAME).cma
+	$(OCAMLBUILD) $(LIBNAME_SDL).cma
 
 native:
-	$(OCAMLBUILD) $(LIBNAME).cmxa
+	$(OCAMLBUILD) $(LIBNAME_SDL).cmxa
 
-doc: $(LIBNAME).odocl
-	$(OCAMLBUILD) $(LIBNAME).docdir/index.html
-	ln -s -f _build/$(LIBNAME).docdir/index.html doc
+js:
+	$(OCAMLBUILD) $(LIBNAME_JS).cma
+
+doc: $(LIBNAME_SDL).odocl
+	$(OCAMLBUILD) $(LIBNAME_SDL).docdir/index.html
+	ln -s -f _build/$(LIBNAME_SDL).docdir/index.html doc
 
 %.odocl: %.mllib
 	cp $*.mllib $*.odocl
 
-example:
-	$(OCAMLBUILD) examples/main.native
-	ln -s -f _build/examples/main.native example
+example: example_sdl example_js
+
+example_sdl:
+	$(OCAMLBUILD) examples/example_sdl.native
+	ln -s -f _build/examples/example_sdl.native example_sdl
+
+example_js:
+	$(OCAMLBUILD) examples/example_js.byte
+	js_of_ocaml _build/examples/example_js.byte \
+		-o _build/examples/example_js.js
+	ln -s -f examples/example_js.html example_js.html
 
 clean:
-	rm -rf _build example doc $(LIBNAME).odocl
+	rm -rf _build example_sdl example_js.html doc $(LIBNAME_SDL).odocl
 
 install: lib
-	ocamlfind install $(LIBNAME) $(FILES)
+	ocamlfind install $(LIBNAME_SDL) $(FILES)
 
 uninstall remove:
-	ocamlfind remove $(LIBNAME)
+	ocamlfind remove $(LIBNAME_SDL)
 
 reinstall: uninstall install
 

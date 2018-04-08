@@ -79,13 +79,10 @@ module Key_code_map = Map.Make (Key_code)
 
 module Key =
 struct
-  type scan_code = Scan_code.t
-  type key_code = Key_code.t
-
   type t =
     {
-      scan_code: scan_code;
-      key_code: key_code;
+      scan_code: Scan_code.t;
+      key_code: Key_code.t;
     }
 
   let show key =
@@ -102,7 +99,7 @@ struct
 
   let scan_code_list =
     [
-      Sdl.Scancode.a, (A: scan_code);
+      Sdl.Scancode.a, (A: Scan_code.t);
       Sdl.Scancode.ac_back, Ac_back;
       Sdl.Scancode.ac_bookmarks, Ac_bookmarks;
       Sdl.Scancode.ac_forward, Ac_forward;
@@ -347,7 +344,7 @@ struct
 
   let key_code_list =
     [
-      Sdl.K.a, (A: key_code);
+      Sdl.K.a, (A: Key_code.t);
       Sdl.K.ac_back, Ac_back;
       Sdl.K.ac_bookmarks, Ac_bookmarks;
       Sdl.K.ac_forward, Ac_forward;
@@ -629,7 +626,7 @@ struct
       | x ->
           x
 
-  let of_scan_code (scan_code: scan_code): t =
+  let of_scan_code (scan_code: Scan_code.t): t =
     {
       scan_code =
         scan_code;
@@ -640,7 +637,7 @@ struct
         |> key_code_of_sdl;
     }
 
-  let of_key_code (key_code: key_code): t =
+  let of_key_code (key_code: Key_code.t): t =
     {
       scan_code =
         key_code

@@ -1,7 +1,5 @@
 true: warn(-30)
 true: warn(-40)
 true: annot
-true: package(tsdl)
-true: package(tsdl_image)
-true: package(tsdl_ttf)
-true: package(tsdl_mixer)
+<src/fungame_sdl.*> or <examples/example_sdl.*>: package(tsdl), package(tsdl_image), package(tsdl_ttf), package(tsdl_mixer)
+<src/fungame_js.*> or <examples/example_js.*>: package(js_of_ocaml), package(js_of_ocaml.syntax), syntax(camlp4o)
