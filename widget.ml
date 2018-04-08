@@ -45,6 +45,7 @@ sig
     ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t list -> t
 
+  val at: int -> int -> t -> t
   val hbox: t list -> t
   val vbox: t list -> t
   val hsplit: float -> left: t -> right: t -> t
@@ -148,6 +149,9 @@ struct
 
   let margin_box ?left ?top ?right ?bottom ?all children =
     margin ?left ?top ?right ?bottom ?all (box children)
+
+  let at x y child =
+    margin ~left: x ~top: y child
 
   let hbox children =
     Hbox children

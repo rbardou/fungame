@@ -97,6 +97,9 @@ sig
     ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t list -> t
 
+  (** [at x y] is the same as [margin ~left: x ~top: y]. *)
+  val at: int -> int -> t -> t
+
   (** Place some widgets next to each other horizontally and box them. *)
   val hbox: t list -> t
 

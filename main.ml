@@ -34,6 +34,7 @@ let () =
         rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ()
         |> center |> middle;
         image bat |> center |> middle;
+        image bat |> at 40 20;
       ];
       margin_box ~left: 20 ~top: 15 ~right: 10 ~bottom: 5 [
         rect ~fill: true ~color: (50, 255, 50, 255) ();
