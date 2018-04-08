@@ -186,6 +186,56 @@ struct
 
 end
 
+module Sound =
+struct
+  type t =
+    {
+      mutable chunk: Tsdl_mixer.Mixer.chunk option;
+    }
+
+  let initialized = ref false
+
+  let init () =
+    if not !initialized then (
+      (* TODO: make those settings parameters? *)
+      (* 44100 is the frequency.
+         2 is the channels (count?). On my machine it seems to have no effect.
+         512 is the chunk size. *)
+      Tsdl_mixer.Mixer.open_audio 44100 Sdl.Audio.s16_sys 2 512 >>= fun () ->
+      initialized := true
+    )
+
+  let close () =
+    if !initialized then (
+      Tsdl_mixer.Mixer.close_audio ();
+      initialized := false
+    )
+
+  let load filename =
+    init ();
+    Tsdl_mixer.Mixer.load_wav filename >>= fun chunk ->
+    { chunk = Some chunk }
+
+  let destroy sound =
+    match sound.chunk with
+      | None ->
+          ()
+      | Some chunk ->
+          Tsdl_mixer.Mixer.free_chunk chunk;
+          sound.chunk <- None
+
+  let play ?(loops = 0) sound =
+    match sound.chunk with
+      | None ->
+          failwith "sound has been destroyed"
+      | Some chunk ->
+          (* Channel (-1) means first available channel. *)
+          (* Don't die in case of error as the most likely error is that
+             there are no free channels available. *)
+          let _: _ result = Tsdl_mixer.Mixer.play_channel (-1) chunk loops in
+          ()
+end
+
 module Widget = Widget.Make (Image)
 
 exception Quit
@@ -206,7 +256,8 @@ let draw_rect renderer ~x ~y ~w ~h ~color ~fill =
   render renderer (Some rect) >>= fun () ->
   ()
 
-let run window ?clear ?(auto_close_window = true) make_ui =
+let run window ?clear ?(auto_close_window = true) ?(auto_close_sound = true)
+    make_ui =
   let widget_state = Widget.start () in
   let renderer = Window.renderer window in
   let { w; h }: Window.t = window in
@@ -269,4 +320,5 @@ let run window ?clear ?(auto_close_window = true) make_ui =
     done
   with Quit ->
     if auto_close_window then Window.close window;
+    if auto_close_sound then Sound.close ();
     Sdl.quit ()

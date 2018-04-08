@@ -8,6 +8,7 @@ let font = Font.load window
 let sansation = font "sansation/Sansation_Regular.ttf" 24
 let bat = img "bat.png"
 let quit_image = Font.render sansation "Quit"
+let kick_drum_1 = Sound.load "samples/Kick-Drum-1.wav"
 
 let quit_button = Button.create quit
 
@@ -19,6 +20,9 @@ let button_color button =
       250, 150, 0, 255
   else
     200, 100, 0, 255
+
+let play_sound () =
+  Sound.play ~loops: 2 kick_drum_1
 
 let () =
   run window @@ fun () ->
@@ -44,7 +48,7 @@ let () =
             margin ~all: 5 (image quit_image);
           ];
           rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ()
-          |> right_clickable quit;
+          |> right_clickable play_sound;
           rect ~fill: true ~color: (200, 200, 0, 255) ~w: 40 ~h: 20 ();
         ]
         |> right;

@@ -4,3 +4,4 @@ true: annot
 true: package(tsdl)
 true: package(tsdl_image)
 true: package(tsdl_ttf)
+true: package(tsdl_mixer)

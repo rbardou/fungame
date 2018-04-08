@@ -81,6 +81,35 @@ sig
     t -> string -> Image.t
 end
 
+(** {2 Sounds} *)
+
+module Sound:
+sig
+  type t
+
+  (** Open audio output.
+
+      Automatically called by [load]. *)
+  val init: unit -> unit
+
+  (** Close audio output.
+
+      Has no effect if audio is not open. *)
+  val close: unit -> unit
+
+  (** Load a WAV file. *)
+  val load: string -> t
+
+  (** Free a sound. *)
+  val destroy: t -> unit
+
+  (** Play a sound.
+
+      Sound will be played [loops + 1] times.
+      Default value for [loops] is [0]. *)
+  val play: ?loops: int -> t -> unit
+end
+
 (** {2 Widgets} *)
 
 module Widget: Widget.WIDGET with type image = Image.t
@@ -103,9 +132,13 @@ val quit: unit -> 'a
     If [clear] is specified, clear screen using given color before drawing.
 
     If [auto_close_window] is [true], call [Window.close] at the end of the
+    main loop. Default is [true].
+
+    If [auto_close_sound] is [true], call [Sound.close] at the end of the
     main loop. Default is [true]. *)
 val run:
   Window.t ->
   ?clear: (int * int * int * int) ->
   ?auto_close_window: bool ->
+  ?auto_close_sound: bool ->
   (unit -> Widget.t list) -> unit
