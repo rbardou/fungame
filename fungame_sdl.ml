@@ -62,10 +62,13 @@ struct
 
 end
 
+module Scan_code = Fungame_scan_code
+module Key_code = Fungame_key_code
+
 module Key =
 struct
-  type scan_code = Fungame_scan_code.t
-  type key_code = Fungame_key_code.t
+  type scan_code = Scan_code.t
+  type key_code = Key_code.t
 
   type t =
     {
@@ -74,10 +77,10 @@ struct
     }
 
   let show key =
-    Fungame_key_code.show key.key_code
+    Key_code.show key.key_code
 
   let show_scan_code key =
-    Fungame_scan_code.show key.scan_code
+    Scan_code.show key.scan_code
 
   let scan_code key =
     key.scan_code
@@ -92,8 +95,8 @@ struct
   end
 
   module Int_map = Map.Make (Int)
-  module Scan_code_map = Map.Make (Fungame_scan_code)
-  module Key_code_map = Map.Make (Fungame_key_code)
+  module Scan_code_map = Map.Make (Scan_code)
+  module Key_code_map = Map.Make (Key_code)
 
   let scan_code_list =
     [
@@ -591,7 +594,7 @@ struct
   let scan_code_of_sdl sdl =
     match Int_map.find sdl sdl_to_scan_code with
       | exception Not_found ->
-          Fungame_scan_code.Unknown
+          Scan_code.Unknown
       | x ->
           x
 
@@ -613,7 +616,7 @@ struct
   let key_code_of_sdl sdl =
     match Int_map.find sdl sdl_to_key_code with
       | exception Not_found ->
-          Fungame_key_code.Unknown
+          Key_code.Unknown
       | x ->
           x
 
@@ -827,104 +830,107 @@ struct
           ()
 end
 
-module Widget = Widget.Make (Image)
+module Widget = Fungame_widget.Make (Image)
 
-exception Quit
+module Main_loop =
+struct
+  exception Quit
 
-let quit () =
-  raise Quit
+  let quit () =
+    raise Quit
 
-let draw_rect renderer ~x ~y ~w ~h ~color ~fill =
-  let r, g, b, a = color in
-  Sdl.set_render_draw_color renderer r g b a >>= fun () ->
-  let render =
-    if fill then
-      Sdl.render_fill_rect
-    else
-      Sdl.render_draw_rect
-  in
-  let rect = Sdl.Rect.create x y w h in
-  render renderer (Some rect) >>= fun () ->
-  ()
+  let draw_rect renderer ~x ~y ~w ~h ~color ~fill =
+    let r, g, b, a = color in
+    Sdl.set_render_draw_color renderer r g b a >>= fun () ->
+    let render =
+      if fill then
+        Sdl.render_fill_rect
+      else
+        Sdl.render_draw_rect
+    in
+    let rect = Sdl.Rect.create x y w h in
+    render renderer (Some rect) >>= fun () ->
+    ()
 
-let run window
-    ?clear
-    ?(auto_close_window = true)
-    ?(auto_close_sound = true)
-    ?(on_key_down = fun _ -> ())
-    ?(on_key_repeat = fun _ -> ())
-    ?(on_key_up = fun _ -> ())
-    make_ui =
-  let widget_state = Widget.start () in
-  let renderer = Window.renderer window in
-  let { w; h }: Window.t = window in
+  let run window
+      ?clear
+      ?(auto_close_window = true)
+      ?(auto_close_sound = true)
+      ?(on_key_down = fun _ -> ())
+      ?(on_key_repeat = fun _ -> ())
+      ?(on_key_up = fun _ -> ())
+      make_ui =
+    let widget_state = Widget.start () in
+    let renderer = Window.renderer window in
+    let { w; h }: Window.t = window in
 
-  try
-    while true do
-      (
-        match clear with
-          | None ->
-              ()
-          | Some (r, g, b, a) ->
-              Sdl.set_render_draw_color renderer r g b a >>= fun () ->
-              Sdl.render_clear renderer >>= fun () ->
-              ()
-      );
+    try
+      while true do
+        (
+          match clear with
+            | None ->
+                ()
+            | Some (r, g, b, a) ->
+                Sdl.set_render_draw_color renderer r g b a >>= fun () ->
+                Sdl.render_clear renderer >>= fun () ->
+                ()
+        );
 
-      let widget = Widget.place w h (Widget.box (make_ui ())) in
-      Widget.draw (draw_rect renderer) ~x: 0 ~y: 0 widget;
+        let widget = Widget.place w h (Widget.box (make_ui ())) in
+        Widget.draw (draw_rect renderer) ~x: 0 ~y: 0 widget;
 
-      Sdl.render_present renderer;
+        Sdl.render_present renderer;
 
-      Sdl.delay 1l;
+        Sdl.delay 1l;
 
-      let event = Sdl.Event.create () in
+        let event = Sdl.Event.create () in
 
-      while Sdl.poll_event (Some event) do
-        let typ = Sdl.Event.get event Sdl.Event.typ in
+        while Sdl.poll_event (Some event) do
+          let typ = Sdl.Event.get event Sdl.Event.typ in
 
-        if typ = Sdl.Event.quit then
-          quit ()
+          if typ = Sdl.Event.quit then
+            quit ()
 
-        else if typ = Sdl.Event.key_down then
-          let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
-          let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
-          let repeat = Sdl.Event.get event Sdl.Event.keyboard_repeat in
-          let key = Key.of_sdl scancode keycode in
-          if repeat > 0 then
-            on_key_repeat key
-          else
-            on_key_down key
+          else if typ = Sdl.Event.key_down then
+            let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
+            let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
+            let repeat = Sdl.Event.get event Sdl.Event.keyboard_repeat in
+            let key = Key.of_sdl scancode keycode in
+            if repeat > 0 then
+              on_key_repeat key
+            else
+              on_key_down key
 
-        else if typ = Sdl.Event.key_up then
-          let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
-          let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
-          let key = Key.of_sdl scancode keycode in
-          on_key_up key
+          else if typ = Sdl.Event.key_up then
+            let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
+            let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
+            let key = Key.of_sdl scancode keycode in
+            on_key_up key
 
-        else if typ = Sdl.Event.mouse_button_down then
-          let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
-          let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-          let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
-          let _: bool = Widget.mouse_down widget_state ~button ~x ~y widget in
-          ()
+          else if typ = Sdl.Event.mouse_button_down then
+            let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
+            let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
+            let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+            let _: bool = Widget.mouse_down widget_state ~button ~x ~y widget in
+            ()
 
-        else if typ = Sdl.Event.mouse_button_up then
-          let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
-          let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-          let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
-          let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
-          ()
+          else if typ = Sdl.Event.mouse_button_up then
+            let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
+            let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
+            let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+            let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
+            ()
 
-        else if typ = Sdl.Event.mouse_motion then
-          let x = Sdl.Event.get event Sdl.Event.mouse_motion_x in
-          let y = Sdl.Event.get event Sdl.Event.mouse_motion_y in
-          let _: bool = Widget.mouse_move widget_state ~x ~y widget in
-          ()
+          else if typ = Sdl.Event.mouse_motion then
+            let x = Sdl.Event.get event Sdl.Event.mouse_motion_x in
+            let y = Sdl.Event.get event Sdl.Event.mouse_motion_y in
+            let _: bool = Widget.mouse_move widget_state ~x ~y widget in
+            ()
 
+        done
       done
-    done
-  with Quit ->
-    if auto_close_window then Window.close window;
-    if auto_close_sound then Sound.close ();
-    Sdl.quit ()
+    with Quit ->
+      if auto_close_window then Window.close window;
+      if auto_close_sound then Sound.close ();
+      Sdl.quit ()
+end

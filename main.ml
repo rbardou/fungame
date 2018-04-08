@@ -13,7 +13,7 @@ let wrapped_text =
     "Text can be wrapped."
 let kick_drum_1 = Sound.load "samples/Kick-Drum-1.wav"
 
-let quit_button = Button.create quit
+let quit_button = Button.create Main_loop.quit
 
 let button_color button =
   if Button.is_under_cursor button then
@@ -31,11 +31,11 @@ let key_event kind key =
   print_endline (kind ^ " " ^ Key.show key ^ " / " ^ Key.show_scan_code key);
   match Key.scan_code key with
     | Space -> if kind <> "UP" then Sound.play kick_drum_1
-    | Escape -> quit ()
+    | Escape -> Main_loop.quit ()
     | _ -> ()
 
 let () =
-  run
+  Main_loop.run
     ~on_key_down: (key_event "DOWN")
     ~on_key_repeat: (key_event "REPEAT")
     ~on_key_up: (key_event "UP")
