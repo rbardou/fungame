@@ -56,7 +56,6 @@ too lazy to find a license which did not had it.
 
 ## TODO
 
-- better main loop, with optional fps parameter
 - `Fungame_js`
 - support other sound formats
 - maybe music should be handled differently than regular sounds

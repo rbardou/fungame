@@ -65,6 +65,18 @@ end
 module Scan_code = Fungame_scan_code
 module Key_code = Fungame_key_code
 
+module Scan_code_set = Set.Make (Scan_code)
+
+module Int =
+struct
+  type t = int
+  let compare = (Pervasives.compare: int -> int -> int)
+end
+
+module Int_map = Map.Make (Int)
+module Scan_code_map = Map.Make (Scan_code)
+module Key_code_map = Map.Make (Key_code)
+
 module Key =
 struct
   type scan_code = Scan_code.t
@@ -87,16 +99,6 @@ struct
 
   let key_code key =
     key.key_code
-
-  module Int =
-  struct
-    type t = int
-    let compare = (Pervasives.compare: int -> int -> int)
-  end
-
-  module Int_map = Map.Make (Int)
-  module Scan_code_map = Map.Make (Scan_code)
-  module Key_code_map = Map.Make (Key_code)
 
   let scan_code_list =
     [
@@ -654,6 +656,11 @@ struct
       scan_code = scan_code_of_sdl scan_code;
       key_code = key_code_of_sdl key_code;
     }
+
+  let pressed = ref Scan_code_set.empty
+
+  let is_down key =
+    Scan_code_set.mem key.scan_code !pressed
 end
 
 module Image =
@@ -859,10 +866,50 @@ struct
       ?(on_key_down = fun _ -> ())
       ?(on_key_repeat = fun _ -> ())
       ?(on_key_up = fun _ -> ())
+      ?fps
+      ?(update = fun _ -> ())
       make_ui =
     let widget_state = Widget.start () in
     let renderer = Window.renderer window in
     let { w; h }: Window.t = window in
+
+    let get_ticks () = Sdl.get_ticks () |> Int32.to_int in
+    let last_update = ref (get_ticks ()) in
+    let last_tick = ref (get_ticks ()) in
+    let consecutive_drops = ref 0 in
+
+    (* Wait for a little bit to ensure that the frame appears to last for
+       about [expected_delay] milliseconds.
+       Return whether the next frame should be drawn. *)
+    let frame_delay expected_delay =
+      let now = get_ticks () in
+      let actual_waiting_delay = !last_tick + expected_delay - now in
+      if actual_waiting_delay >= 0 then
+        (* We can wait. *)
+        begin
+          Sdl.delay (Int32.of_int actual_waiting_delay);
+          last_tick := !last_tick + expected_delay;
+          consecutive_drops := 0;
+          true (* We may draw the next frame. *)
+        end
+      else
+        (* We can't wait and we have to drop a frame. *)
+      if !consecutive_drops >= 19 then
+        (* We dropped too many frames. Let's forget about it and reset. *)
+        begin
+          consecutive_drops := 0;
+          last_tick := now;
+          true (* We may draw the next frame. *)
+        end
+      else
+        begin
+          incr consecutive_drops;
+          last_tick := !last_tick + expected_delay;
+          false (* Drop the next frame. *)
+        end
+    in
+
+    Key.pressed := Scan_code_set.empty;
 
     try
       while true do
@@ -876,58 +923,75 @@ struct
                 ()
         );
 
-        let widget = Widget.place w h (Widget.box (make_ui ())) in
-        Widget.draw (draw_rect renderer) ~x: 0 ~y: 0 widget;
+        if
+          match fps with
+            | None ->
+                true
+            | Some fps ->
+                frame_delay (int_of_float (1000. /. float fps))
+        then (
+          let widget = Widget.place w h (Widget.box (make_ui ())) in
+          Widget.draw (draw_rect renderer) ~x: 0 ~y: 0 widget;
 
-        Sdl.render_present renderer;
+          Sdl.render_present renderer;
 
-        Sdl.delay 1l;
+          let event = Sdl.Event.create () in
 
-        let event = Sdl.Event.create () in
+          while Sdl.poll_event (Some event) do
+            let typ = Sdl.Event.get event Sdl.Event.typ in
 
-        while Sdl.poll_event (Some event) do
-          let typ = Sdl.Event.get event Sdl.Event.typ in
+            if typ = Sdl.Event.quit then
+              quit ()
 
-          if typ = Sdl.Event.quit then
-            quit ()
+            else if typ = Sdl.Event.key_down then
+              let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
+              let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
+              let repeat = Sdl.Event.get event Sdl.Event.keyboard_repeat in
+              let key = Key.of_sdl scancode keycode in
+              Key.pressed :=
+                Scan_code_set.add (Key.scan_code key) !Key.pressed;
+              if repeat > 0 then
+                on_key_repeat key
+              else
+                on_key_down key
 
-          else if typ = Sdl.Event.key_down then
-            let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
-            let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
-            let repeat = Sdl.Event.get event Sdl.Event.keyboard_repeat in
-            let key = Key.of_sdl scancode keycode in
-            if repeat > 0 then
-              on_key_repeat key
-            else
-              on_key_down key
+            else if typ = Sdl.Event.key_up then
+              let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
+              let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
+              let key = Key.of_sdl scancode keycode in
+              Key.pressed :=
+                Scan_code_set.remove (Key.scan_code key) !Key.pressed;
+              on_key_up key
 
-          else if typ = Sdl.Event.key_up then
-            let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
-            let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
-            let key = Key.of_sdl scancode keycode in
-            on_key_up key
+            else if typ = Sdl.Event.mouse_button_down then
+              let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
+              let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
+              let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+              let _: bool =
+                Widget.mouse_down widget_state ~button ~x ~y widget
+              in
+              ()
 
-          else if typ = Sdl.Event.mouse_button_down then
-            let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
-            let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-            let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
-            let _: bool = Widget.mouse_down widget_state ~button ~x ~y widget in
-            ()
+            else if typ = Sdl.Event.mouse_button_up then
+              let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
+              let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
+              let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+              let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
+              ()
 
-          else if typ = Sdl.Event.mouse_button_up then
-            let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
-            let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-            let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
-            let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
-            ()
+            else if typ = Sdl.Event.mouse_motion then
+              let x = Sdl.Event.get event Sdl.Event.mouse_motion_x in
+              let y = Sdl.Event.get event Sdl.Event.mouse_motion_y in
+              let _: bool = Widget.mouse_move widget_state ~x ~y widget in
+              ()
 
-          else if typ = Sdl.Event.mouse_motion then
-            let x = Sdl.Event.get event Sdl.Event.mouse_motion_x in
-            let y = Sdl.Event.get event Sdl.Event.mouse_motion_y in
-            let _: bool = Widget.mouse_move widget_state ~x ~y widget in
-            ()
+          done
+        );
 
-        done
+        let now = get_ticks () in
+        let elapsed = now - !last_update in
+        last_update := now;
+        update elapsed
       done
     with Quit ->
       if auto_close_window then Window.close window;

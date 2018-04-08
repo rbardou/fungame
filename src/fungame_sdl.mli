@@ -37,6 +37,9 @@ sig
 
   (** Make a key from a key code. *)
   val of_key_code: Key_code.t -> t
+
+  (** Return whether a key is being pressed. *)
+  val is_down: t -> bool
 end
 
 (** {2 Images} *)
@@ -158,7 +161,14 @@ sig
       main loop. Default is [true].
 
       If [auto_close_sound] is [true], call [Sound.close] at the end of the
-      main loop. Default is [true]. *)
+      main loop. Default is [true].
+
+      If [fps] is specified, add a delay after each iteration to try to
+      maintain a framerate of [fps] frames per second. Drop frames if
+      necessary, but not too many consecutively.
+
+      If [update] is specified, call it after each iteration with the number
+      of milliseconds elapsed since the last time it was called. *)
   val run:
     Window.t ->
     ?clear: (int * int * int * int) ->
@@ -167,10 +177,12 @@ sig
     ?on_key_down: (Key.t -> unit) ->
     ?on_key_repeat: (Key.t -> unit) ->
     ?on_key_up: (Key.t -> unit) ->
+    ?fps: int ->
+    ?update: (int -> unit) ->
     (unit -> Widget.t list) -> unit
 
   (** Exit the main loop.
 
-      Call this from widget events. *)
+      Call this from event handlers or from [update]. *)
   val quit: unit -> 'a
 end
