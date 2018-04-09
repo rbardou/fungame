@@ -20,7 +20,7 @@ struct
   let player_x = ref 40
   let player_y = ref 20
 
-  let quit_button = Button.create Main_loop.quit
+  let quit_button = Button.create ()
 
   let button_color button =
     if Button.is_under_cursor button then
@@ -77,7 +77,7 @@ struct
         margin_box ~left: 20 ~top: 15 ~right: 10 ~bottom: 5 [
           rect ~fill: true ~color: (50, 255, 50, 255) ();
           hbox [
-            button quit_button [
+            button quit_button Main_loop.quit [
               rect
                 ~fill: true
                 ~color: (button_color quit_button)

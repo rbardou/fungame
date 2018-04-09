@@ -27,12 +27,12 @@ sig
   module Button:
   sig
     type t
-    val create: (unit -> unit) -> t
+    val create: unit -> t
     val is_down: t -> bool
     val is_under_cursor: t -> bool
   end
 
-  val button: Button.t -> t list -> t
+  val button: Button.t -> (unit -> unit) -> t list -> t
   val right_clickable: (unit -> unit) -> t -> t
 
   val box: t list -> t
@@ -97,14 +97,12 @@ struct
       {
         mutable is_down: bool;
         mutable is_under_cursor: bool;
-        on_click: unit -> unit;
       }
 
-    let create on_click =
+    let create () =
       {
         is_down = false;
         is_under_cursor = false;
-        on_click;
       }
 
     let is_down button =
@@ -117,7 +115,7 @@ struct
   type t =
     | Rect of rect * int option * int option (* rect, w, h *)
     | Image of image
-    | Button of t * Button.t
+    | Button of t * Button.t * (unit -> unit)
     | Right_clickable of t * (unit -> unit)
     | Margin of t * int * int * int * int (* child, left, top, right, bottom *)
     | Box of t list
@@ -136,8 +134,8 @@ struct
   let box children =
     Box children
 
-  let button state children =
-    Button (box children, state)
+  let button state on_click children =
+    Button (box children, state, on_click)
 
   let right_clickable on_click child =
     Right_clickable (child, on_click)
@@ -204,7 +202,7 @@ struct
     | Box
     | Rect of rect
     | Image of image
-    | Button of Button.t
+    | Button of Button.t * (unit -> unit)
     | Right_clickable of (unit -> unit)
 
   type placed =
@@ -244,14 +242,14 @@ struct
               children = [];
             }
 
-        | Button (child, state) ->
+        | Button (child, state, on_click) ->
             let child = place parent_w parent_h child in
             {
               x = 0;
               y = 0;
               w = child.w;
               h = child.h;
-              kind = Button state;
+              kind = Button (state, on_click);
               children = [ child ];
             }
 
@@ -480,7 +478,7 @@ struct
      We assume the widget has not moved when the button is released. *)
   type being_clicked =
     | None
-    | Button of Button.t * int * int * int * int
+    | Button of Button.t * int * int * int * int * (unit -> unit)
 
   type under_cursor =
     | None
@@ -507,14 +505,15 @@ struct
       (widget: placed) =
     if point_in_widget ~x ~y widget then
       match widget.kind with
-        | Button button_state when button = left_mouse_button ->
+        | Button (button_state, on_click) when button = left_mouse_button ->
             state.being_clicked <-
               Button (
                 button_state,
                 parent_x + widget.x,
                 parent_y + widget.y,
                 widget.w,
-                widget.h
+                widget.h,
+                on_click
               );
             button_state.is_down <- true;
             true
@@ -548,12 +547,13 @@ struct
 
   let rec mouse_up (state: state) ~button ~x ~y (widget: placed) =
     match state.being_clicked with
-      | Button (button_state, rx, ry, rw, rh) when button = left_mouse_button ->
+      | Button (button_state, rx, ry, rw, rh, on_click)
+        when button = left_mouse_button ->
           state.being_clicked <- None;
           button_state.is_down <- false;
           if point_in_rect ~x ~y ~rx ~ry ~rw ~rh then
             (
-              button_state.on_click ();
+              on_click ();
               true
             )
           else
@@ -564,7 +564,7 @@ struct
   let rec mouse_move (state: state) ~x ~y (widget: placed) =
     if point_in_widget ~x ~y widget then
       match widget.kind with
-        | Button button ->
+        | Button (button, _) ->
             state.under_cursor <- Button button;
             button.is_under_cursor <- true;
             true

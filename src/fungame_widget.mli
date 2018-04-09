@@ -64,7 +64,7 @@ sig
     type t
 
     (** Create a new button state, given an [on_click] event. *)
-    val create: (unit -> unit) -> t
+    val create: unit -> t
 
     (** Test whether a button is being pressed. *)
     val is_down: t -> bool
@@ -80,7 +80,7 @@ sig
       [is_down] is [true] until this mouse button is released.
       If the mouse button is released and the cursor is still on
       the widget, [on_click] is triggered. *)
-  val button: Button.t -> t list -> t
+  val button: Button.t -> (unit -> unit) -> t list -> t
 
   (** Make a widget capable of receiving right click events.
 
