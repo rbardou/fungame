@@ -7,13 +7,13 @@ OCAMLBUILD := $(OCAMLBUILD) -use-ocamlfind
 OCAMLBUILD := $(OCAMLBUILD) -I src
 
 FILES_SDL := META
-FILES_SDL := $(FILES) $(wildcard _build/$(LIBNAME_SDL).cma)
-FILES_SDL := $(FILES) $(wildcard _build/$(LIBNAME_SDL).cmxa)
-FILES_SDL := $(FILES) $(wildcard _build/src/*.a)
-FILES_SDL := $(FILES) $(wildcard _build/src/*.cmi)
-FILES_SDL := $(FILES) $(wildcard _build/src/*.cmx)
-FILES_SDL := $(FILES) $(wildcard _build/src/*.cma)
-FILES_SDL := $(FILES) $(wildcard _build/src/*.cmxa)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/$(LIBNAME_SDL).cma)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/$(LIBNAME_SDL).cmxa)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/*.a)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/src/*.cmi)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/src/*.cmx)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/src/*.cma)
+FILES_SDL := $(FILES_SDL) $(wildcard _build/src/*.cmxa)
 
 default: lib
 
@@ -53,7 +53,7 @@ clean:
 	rm -rf _build example_sdl example_js.html doc $(LIBNAME_SDL).odocl
 
 install: lib
-	ocamlfind install $(LIBNAME_SDL) $(FILES)
+	ocamlfind install $(LIBNAME_SDL) $(FILES_SDL)
 
 uninstall remove:
 	ocamlfind remove $(LIBNAME_SDL)
