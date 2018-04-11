@@ -112,6 +112,25 @@ sig
       ?mode: mode ->
       ?color: (int * int * int * int) ->
       t -> string -> Image.t
+
+    (** Same as [render], but memoize the result.
+
+        If you call [render_memoized] in the next frame with the same
+        parameters, the image will be reused, saving the rendering
+        time. If you don't, or if the main loop ends, the image will
+        be [destroy]ed automatically.
+
+        This allows you to render text on the fly instead of at the beginning
+        and yet not lose much performance. This is especially convenient
+        for text containing values which depend on the state of your program.
+
+        Instead of calling [render_memoized] directly, you probably want to
+        use [Widget.text]. *)
+    val render_memoized:
+      ?utf8: bool ->
+      ?mode: mode ->
+      ?color: (int * int * int * int) ->
+      t -> string -> Image.t
   end
 
   (** {2 Sounds} *)
@@ -145,7 +164,16 @@ sig
 
   (** {2 Widgets} *)
 
-  module Widget: Fungame_widget.WIDGET with type image = Image.t
+  module Widget:
+  sig
+    include Fungame_widget.WIDGET with type image = Image.t
+
+    val text:
+      ?utf8: bool ->
+      ?mode: Font.mode ->
+      ?color: (int * int * int * int) ->
+      Font.t -> string -> t
+  end
 
   (** {2 Main Loop} *)
 

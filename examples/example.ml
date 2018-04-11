@@ -109,6 +109,9 @@ struct
         ]
       ];
       image wrapped_text |> bottom |> right;
+      text sansation ~color: (255, 255, 255, 255)
+        "Text can also be rendered on the fly, memoized."
+      |> bottom;
     ]
 
 end

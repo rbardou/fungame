@@ -61,4 +61,5 @@ uninstall remove:
 reinstall: uninstall install
 
 .PHONY: default all lib byte native example doc clean \
-	install uninstall remove reinstall
+	install uninstall remove reinstall \
+	example example_sdl example_js

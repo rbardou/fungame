@@ -715,13 +715,19 @@ module Font =
 struct
   type t =
     {
+      id: int; (* used for memoization *)
       window: Window.t;
       mutable font: Tsdl_ttf.Ttf.font option;
     }
 
+  let next_id = ref 0
+
   let load window filename size =
     Tsdl_ttf.Ttf.open_font filename size >>= fun font ->
+    let id = !next_id in
+    incr next_id;
     {
+      id;
       window;
       font = Some font;
     }
@@ -782,6 +788,49 @@ struct
     Sdl.free_surface surface;
     Image.from_texture window texture
 
+  module Parameters =
+  struct
+    type t = bool * mode * (int * int * int * int) * int * string
+    let compare = (Pervasives.compare: t -> t -> int)
+  end
+
+  module Memo = Map.Make (Parameters)
+
+  (* [memo_old] contains memoized text which will be [destroy]ed at the end
+     of the current frame, at which point [memo_current] will take its place. *)
+  let memo_old = ref Memo.empty
+  let memo_current = ref Memo.empty
+
+  let render_memoized ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
+      font text =
+    let parameters = utf8, mode, color, font.id, text in
+    match Memo.find parameters !memo_current with
+      | image ->
+          image
+      | exception Not_found ->
+          match Memo.find parameters !memo_old with
+            | image ->
+                (* Don't destroy this image at the end of this frame. *)
+                memo_old := Memo.remove parameters !memo_old;
+                memo_current := Memo.add parameters image !memo_current;
+                image
+            | exception Not_found ->
+print_endline ("render " ^ text);
+                let image = render ~utf8 ~mode ~color font text in
+                memo_current := Memo.add parameters image !memo_current;
+                image
+
+  let next_frame () =
+    Memo.iter (fun _ -> Image.destroy) !memo_old;
+    memo_old := !memo_current;
+    memo_current := Memo.empty
+
+  let clear_memo () =
+    (* clear [memo_old] *)
+    next_frame ();
+    (* clear [memo_current] *)
+    next_frame ()
+
 end
 
 module Sound =
@@ -834,7 +883,13 @@ struct
           ()
 end
 
-module Widget = Fungame_widget.Make (Image)
+module Widget =
+struct
+  include Fungame_widget.Make (Image)
+
+  let text ?utf8 ?mode ?color font text =
+    image (Font.render_memoized ?utf8 ?mode ?color font text)
+end
 
 module Main_loop =
 struct
@@ -932,6 +987,8 @@ struct
 
           Sdl.render_present renderer;
 
+          Font.next_frame ();
+
           let event = Sdl.Event.create () in
 
           while Sdl.poll_event (Some event) do
@@ -991,6 +1048,7 @@ struct
         update elapsed
       done
     with Quit ->
+      Font.clear_memo ();
       if auto_close_window then Window.close window;
       if auto_close_sound then Sound.close ();
       Sdl.quit ()
