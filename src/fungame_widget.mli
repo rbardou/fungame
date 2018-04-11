@@ -156,6 +156,12 @@ sig
   (** Same as [ratio ~v: 1.]. *)
   val bottom: t -> t
 
+  (** Set the size of a widget.
+
+      Useful for widgets which, by default, take the size of their parent,
+      such as [ratio]. *)
+  val size: ?w: int -> ?h: int -> t -> t
+
   (** Widgets whose placement has been computed. *)
   type placed
 

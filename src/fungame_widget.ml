@@ -60,6 +60,8 @@ sig
   val middle: t -> t
   val bottom: t -> t
 
+  val size: ?w: int -> ?h: int -> t -> t
+
   type placed
 
   val place: w: int -> h: int -> t -> placed
@@ -124,6 +126,7 @@ struct
     | Hsplit of t * t * float (* left, right, ratio *)
     | Vsplit of t * t * float (* top, bottom, ratio *)
     | Ratio of t * float option * float option (* child, hratio, vratio *)
+    | Size of t * int option * int option
 
   let rect ?w ?h ?(color = 255, 0, 0, 255) ?(fill = false) () =
     Rect ({ color; fill }, w, h)
@@ -197,6 +200,9 @@ struct
   let top child = ratio ~v: 0. child
   let middle child = ratio ~v: 0.5 child
   let bottom child = ratio ~v: 1. child
+
+  let size ?w ?h child =
+    Size (child, w, h)
 
   type kind =
     | Box
@@ -433,6 +439,19 @@ struct
               y = 0;
               w = (match hratio with None -> child.w | Some _ -> parent_w);
               h = (match vratio with None -> child.h | Some _ -> parent_h);
+              kind = Box;
+              children = [ child ];
+            }
+
+        | Size (child, w, h) ->
+            let w = match w with None -> parent_w | Some w -> w in
+            let h = match h with None -> parent_h | Some h -> h in
+            let child = place w h child in
+            {
+              x = 0;
+              y = 0;
+              w;
+              h;
               kind = Box;
               children = [ child ];
             }
