@@ -975,6 +975,8 @@ struct
                 ()
         );
 
+        let widget = Widget.place w h (Widget.box (make_ui ())) in
+
         if
           match fps with
             | None ->
@@ -982,65 +984,62 @@ struct
             | Some fps ->
                 frame_delay (int_of_float (1000. /. float fps))
         then (
-          let widget = Widget.place w h (Widget.box (make_ui ())) in
           Widget.draw (draw_rect renderer) ~x: 0 ~y: 0 widget;
-
           Sdl.render_present renderer;
-
           Font.next_frame ();
-
-          let event = Sdl.Event.create () in
-
-          while Sdl.poll_event (Some event) do
-            let typ = Sdl.Event.get event Sdl.Event.typ in
-
-            if typ = Sdl.Event.quit then
-              quit ()
-
-            else if typ = Sdl.Event.key_down then
-              let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
-              let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
-              let repeat = Sdl.Event.get event Sdl.Event.keyboard_repeat in
-              let key = Key.of_sdl scancode keycode in
-              Key.pressed :=
-                Scan_code_set.add (Key.scan_code key) !Key.pressed;
-              if repeat > 0 then
-                on_key_repeat key
-              else
-                on_key_down key
-
-            else if typ = Sdl.Event.key_up then
-              let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
-              let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
-              let key = Key.of_sdl scancode keycode in
-              Key.pressed :=
-                Scan_code_set.remove (Key.scan_code key) !Key.pressed;
-              on_key_up key
-
-            else if typ = Sdl.Event.mouse_button_down then
-              let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
-              let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-              let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
-              let _: bool =
-                Widget.mouse_down widget_state ~button ~x ~y widget
-              in
-              ()
-
-            else if typ = Sdl.Event.mouse_button_up then
-              let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
-              let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
-              let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
-              let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
-              ()
-
-            else if typ = Sdl.Event.mouse_motion then
-              let x = Sdl.Event.get event Sdl.Event.mouse_motion_x in
-              let y = Sdl.Event.get event Sdl.Event.mouse_motion_y in
-              let _: bool = Widget.mouse_move widget_state ~x ~y widget in
-              ()
-
-          done
         );
+
+        let event = Sdl.Event.create () in
+
+        while Sdl.poll_event (Some event) do
+          let typ = Sdl.Event.get event Sdl.Event.typ in
+
+          if typ = Sdl.Event.quit then
+            quit ()
+
+          else if typ = Sdl.Event.key_down then
+            let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
+            let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
+            let repeat = Sdl.Event.get event Sdl.Event.keyboard_repeat in
+            let key = Key.of_sdl scancode keycode in
+            Key.pressed :=
+              Scan_code_set.add (Key.scan_code key) !Key.pressed;
+            if repeat > 0 then
+              on_key_repeat key
+            else
+              on_key_down key
+
+          else if typ = Sdl.Event.key_up then
+            let scancode = Sdl.Event.get event Sdl.Event.keyboard_scancode in
+            let keycode = Sdl.Event.get event Sdl.Event.keyboard_keycode in
+            let key = Key.of_sdl scancode keycode in
+            Key.pressed :=
+              Scan_code_set.remove (Key.scan_code key) !Key.pressed;
+            on_key_up key
+
+          else if typ = Sdl.Event.mouse_button_down then
+            let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
+            let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
+            let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+            let _: bool =
+              Widget.mouse_down widget_state ~button ~x ~y widget
+            in
+            ()
+
+          else if typ = Sdl.Event.mouse_button_up then
+            let x = Sdl.Event.get event Sdl.Event.mouse_button_x in
+            let y = Sdl.Event.get event Sdl.Event.mouse_button_y in
+            let button = Sdl.Event.get event Sdl.Event.mouse_button_button in
+            let _: bool = Widget.mouse_up widget_state ~button ~x ~y widget in
+            ()
+
+          else if typ = Sdl.Event.mouse_motion then
+            let x = Sdl.Event.get event Sdl.Event.mouse_motion_x in
+            let y = Sdl.Event.get event Sdl.Event.mouse_motion_y in
+            let _: bool = Widget.mouse_move widget_state ~x ~y widget in
+            ()
+
+        done;
 
         let now = get_ticks () in
         let elapsed = now - !last_update in
