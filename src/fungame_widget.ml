@@ -42,6 +42,11 @@ sig
     t -> t
 
   val at: int -> int -> t -> t
+
+  type env = { w: int; h: int; pw: int; ph: int }
+  type expr = env -> int
+  val atf: expr -> expr -> t -> t
+
   val hbox: t list -> t
   val vbox: t list -> t
   val hsplit: float -> left: t -> right: t -> t
@@ -110,12 +115,16 @@ struct
       button.is_under_cursor
   end
 
+  type env = { w: int; h: int; pw: int; ph: int }
+  type expr = env -> int
+
   type t =
     | Rect of rect * int option * int option (* rect, w, h *)
     | Image of image
     | Button of t * Button.t * (unit -> unit)
     | Right_clickable of t * (unit -> unit)
     | Margin of t * int * int * int * int (* child, left, top, right, bottom *)
+    | Atf of t * expr * expr (* child, x, y *)
     | Box of t list
     | Hbox of t list
     | Vbox of t list
@@ -146,6 +155,9 @@ struct
 
   let at x y child =
     margin ~left: x ~top: y child
+
+  let atf x y child =
+    Atf (child, x, y)
 
   let hbox children =
     Hbox children
@@ -276,6 +288,23 @@ struct
               y = 0;
               w = child.w + left + right;
               h = child.h + top + bottom;
+              kind = Box;
+              children = [ child ];
+            }
+
+        | Atf (child, x, y) ->
+            let child = place parent_w parent_h child in
+            let env =
+              { w = child.w; h = child.h; pw = parent_w; ph = parent_h }
+            in
+            let x = x env in
+            let y = y env in
+            let child = { child with x; y } in
+            {
+              x = 0;
+              y = 0;
+              w = parent_w;
+              h = parent_h;
               kind = Box;
               children = [ child ];
             }

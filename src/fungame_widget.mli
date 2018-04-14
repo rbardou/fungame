@@ -93,12 +93,26 @@ sig
 
   (** Box widgets (like [box]) and add margins. *)
   val margin:
-    ?left: int -> ?top: int -> ?right: int -> ?bottom: int ->
-    ?all: int ->
+    ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t -> t
 
   (** [at x y] is the same as [margin ~left: x ~top: y]. *)
   val at: int -> int -> t -> t
+
+  (** Expression environments to place [atf] widgets.
+
+      [w] and [h] are the dimensions of the child widget.
+      [pw] and [ph] are the dimensions of the parent widget. *)
+  type env = { w: int; h: int; pw: int; ph: int }
+
+  (** Placement expressions. *)
+  type expr = env -> int
+
+  (** Similar to [at] but coordinates are given using an expression.
+
+      Contrary to [at], the placement is not done by adding margins.
+      Instead, the resulting widget has the size of its parent. *)
+  val atf: expr -> expr -> t -> t
 
   (** Place some widgets next to each other horizontally and box them. *)
   val hbox: t list -> t
