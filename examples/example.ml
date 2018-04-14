@@ -74,10 +74,10 @@ struct
           image bat |> center |> middle;
           image bat |> at !player_x !player_y;
         ];
-        margin_box ~left: 20 ~top: 15 ~right: 10 ~bottom: 5 [
+        box [
           rect ~fill: true ~color: (50, 255, 50, 255) ();
           hbox [
-            button quit_button Main_loop.quit [
+            box [
               rect
                 ~fill: true
                 ~color: (button_color quit_button)
@@ -85,7 +85,8 @@ struct
                 ~h: (Image.height quit_text + 10)
                 ();
               margin ~all: 5 (image quit_text);
-            ];
+            ]
+            |> button quit_button Main_loop.quit;
             rect ~fill: true ~color: (100, 100, 0, 255) ~w: 20 ~h: 10 ()
             |> right_clickable play_sound;
             rect ~fill: true ~color: (200, 200, 0, 255) ~w: 40 ~h: 20 ();
@@ -97,14 +98,16 @@ struct
             rect ~fill: true ~color: (200, 200, 0, 255) ~w: 40 ~h: 20 ();
           ]
           |> bottom |> right;
-        ];
+        ]
+        |> margin ~left: 20 ~top: 15 ~right: 10 ~bottom: 5;
         vsplitl [
           rect ~fill: true ~color: (50, 50, 255, 255) ();
-          margin_box ~all: 5 [
+          box [
             rect ~fill: true ~color: (255, 255, 255, 255) ();
             rect ~fill: true ~color: (200, 100, 0, 255) ~w: 10 ~h: 10 ()
             |> ratio ~h: 0.5 ~v: 0.2;
-          ];
+          ]
+          |> margin ~all: 5;
           rect ~fill: true ~color: (0, 0, 0, 255) ();
         ]
       ];

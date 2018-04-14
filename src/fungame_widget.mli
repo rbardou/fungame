@@ -80,7 +80,7 @@ sig
       [is_down] is [true] until this mouse button is released.
       If the mouse button is released and the cursor is still on
       the widget, [on_click] is triggered. *)
-  val button: Button.t -> (unit -> unit) -> t list -> t
+  val button: Button.t -> (unit -> unit) -> t -> t
 
   (** Make a widget capable of receiving right click events.
 
@@ -95,11 +95,6 @@ sig
   val margin:
     ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t -> t
-
-  (** [margin children] is the same as [margin (box children)]. *)
-  val margin_box:
-    ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
-    t list -> t
 
   (** [at x y] is the same as [margin ~left: x ~top: y]. *)
   val at: int -> int -> t -> t

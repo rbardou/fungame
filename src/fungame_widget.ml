@@ -32,7 +32,7 @@ sig
     val is_under_cursor: t -> bool
   end
 
-  val button: Button.t -> (unit -> unit) -> t list -> t
+  val button: Button.t -> (unit -> unit) -> t -> t
   val right_clickable: (unit -> unit) -> t -> t
 
   val box: t list -> t
@@ -40,10 +40,6 @@ sig
   val margin:
     ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
     t -> t
-
-  val margin_box:
-    ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
-    t list -> t
 
   val at: int -> int -> t -> t
   val hbox: t list -> t
@@ -137,8 +133,8 @@ struct
   let box children =
     Box children
 
-  let button state on_click children =
-    Button (box children, state, on_click)
+  let button state on_click child =
+    Button (child, state, on_click)
 
   let right_clickable on_click child =
     Right_clickable (child, on_click)
@@ -147,9 +143,6 @@ struct
       ?(left = 0) ?(top = 0) ?(right = 0) ?(bottom = 0) ?(all = 0)
       child =
     Margin (child, left + all, top + all, right + all, bottom + all)
-
-  let margin_box ?left ?top ?right ?bottom ?all children =
-    margin ?left ?top ?right ?bottom ?all (box children)
 
   let at x y child =
     margin ~left: x ~top: y child
