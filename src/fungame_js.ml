@@ -358,7 +358,7 @@ struct
     let rec on_animation_frame (canvas: Dom_html.canvasElement Js.t)
         (now: float) =
       let context = canvas##getContext(Dom_html._2d_) in
-      widget := Widget.place window.w window.h (Widget.box (make_ui ()));
+      widget := Widget.place window.w window.h (make_ui ());
       (
         match clear with
           | None ->

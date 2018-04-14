@@ -185,7 +185,7 @@ sig
 
         Usage: [run make_ui]
 
-        Call [make_ui] to build a widget list, then draw it and handle
+        Call [make_ui] to build a widget, then draw it and handle
         events. Then call [make_ui] again and start over, looping until
         the user exits.
 
@@ -213,7 +213,7 @@ sig
       ?on_key_up: (Key.t -> unit) ->
       ?fps: int ->
       ?update: (int -> unit) ->
-      (unit -> Widget.t list) -> unit
+      (unit -> Widget.t) -> unit
 
     (** Exit the main loop.
 

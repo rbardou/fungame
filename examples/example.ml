@@ -64,7 +64,7 @@ struct
       ~update
       window
     @@ fun () ->
-    [
+    box [
       rect ~fill: true ~color: (50, 50, 50, 255) ();
       hsplitl [
         box [

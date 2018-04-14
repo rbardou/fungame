@@ -974,7 +974,7 @@ struct
                 ()
         );
 
-        let widget = Widget.place w h (Widget.box (make_ui ())) in
+        let widget = Widget.place w h (make_ui ()) in
 
         if
           match fps with
