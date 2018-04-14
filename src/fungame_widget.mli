@@ -169,8 +169,15 @@ sig
 
   (** Set the size of a widget.
 
+      If [w] ([h]) is specified, set the width (height) to [w] ([h]);
+      otherwise, take all available width (height).
+
       Useful for widgets which, by default, take the size of their parent,
-      such as [at_ratio]. *)
+      such as [at_ratio]: you can specify a fixed size.
+
+      Also useful for widgets which, by default, with no children, have a size
+      of zero, such as [button]: you can write [button (size (box []))] to
+      have the button take the whole available size. *)
   val size: ?w: int -> ?h: int -> t -> t
 
   (** Widgets whose placement has been computed. *)
