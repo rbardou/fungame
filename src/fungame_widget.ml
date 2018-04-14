@@ -48,7 +48,7 @@ sig
   val vsplit: float -> top: t -> bottom: t -> t
   val hsplitl: t list -> t
   val vsplitl: t list -> t
-  val ratio: ?h: float -> ?v: float -> t -> t
+  val at_ratio: ?h: float -> ?v: float -> t -> t
   val left: t -> t
   val center: t -> t
   val right: t -> t
@@ -121,7 +121,7 @@ struct
     | Vbox of t list
     | Hsplit of t * t * float (* left, right, ratio *)
     | Vsplit of t * t * float (* top, bottom, ratio *)
-    | Ratio of t * float option * float option (* child, hratio, vratio *)
+    | At_ratio of t * float option * float option (* child, hratio, vratio *)
     | Size of t * int option * int option
 
   let rect ?w ?h ?(color = 255, 0, 0, 255) ?(fill = false) () =
@@ -177,22 +177,22 @@ struct
   let vsplitl children =
     splitl (fun ratio top bottom -> vsplit ratio ~top ~bottom) children
 
-  let ratio ?h ?v child =
+  let at_ratio ?h ?v child =
     match child with
-      | Ratio (child, child_h, child_v) ->
+      | At_ratio (child, child_h, child_v) ->
           let h = match h with None -> child_h | Some _ -> h in
           let v = match v with None -> child_v | Some _ -> v in
-          Ratio (child, h, v)
+          At_ratio (child, h, v)
       | _ ->
-          Ratio (child, h, v)
+          At_ratio (child, h, v)
 
-  let left child = ratio ~h: 0. child
-  let center child = ratio ~h: 0.5 child
-  let right child = ratio ~h: 1. child
+  let left child = at_ratio ~h: 0. child
+  let center child = at_ratio ~h: 0.5 child
+  let right child = at_ratio ~h: 1. child
 
-  let top child = ratio ~v: 0. child
-  let middle child = ratio ~v: 0.5 child
-  let bottom child = ratio ~v: 1. child
+  let top child = at_ratio ~v: 0. child
+  let middle child = at_ratio ~v: 0.5 child
+  let bottom child = at_ratio ~v: 1. child
 
   let size ?w ?h child =
     Size (child, w, h)
@@ -404,7 +404,7 @@ struct
               children = [ top; bottom ];
             }
 
-        | Ratio (child, hratio, vratio) ->
+        | At_ratio (child, hratio, vratio) ->
             let child = place parent_w parent_h child in
             let child =
               let x =

@@ -93,7 +93,8 @@ sig
 
   (** Box widgets (like [box]) and add margins. *)
   val margin:
-    ?left: int -> ?top: int -> ?right: int -> ?bottom: int -> ?all: int ->
+    ?left: int -> ?top: int -> ?right: int -> ?bottom: int ->
+    ?all: int ->
     t -> t
 
   (** [at x y] is the same as [margin ~left: x ~top: y]. *)
@@ -119,42 +120,43 @@ sig
 
   (** Place a widget relatively to its parent.
 
-      For instance, [ratio ~h: 0.5 ~v: 1. child] places the center-bottom part
-      of [child] at the center-bottom part of its parent.
+      For instance, [at_ratio ~h: 0.5 ~v: 1. child] places the
+      center-bottom part of [child] at the center-bottom part of its
+      parent.
 
       If [h] is specified, return a widget with the width of its parent
       (so that the child can be placed inside this width).
       Similarly, if [v] is specified, return a widget with the height of its
       parent.
 
-      As a special case, [ratio ~h (ratio ~v child)] and
-      [ratio ~v (ratio ~h child)] are modified to actually be
-      [ratio ~h ~v child]. This means you can write [widget |> center |> bottom]
-      for instance. *)
-  val ratio: ?h: float -> ?v: float -> t -> t
+      As a special case, [at_ratio ~h (at_ratio ~v child)] and
+      [at_ratio ~v (at_ratio ~h child)] are modified to actually be
+      [at_ratio ~h ~v child]. This means you can write
+      [widget |> center |> bottom] for instance. *)
+  val at_ratio: ?h: float -> ?v: float -> t -> t
 
-  (** Same as [ratio ~h: 0.]. *)
+  (** Same as [at_ratio ~h: 0.]. *)
   val left: t -> t
 
-  (** Same as [ratio ~h: 0.5]. *)
+  (** Same as [at_ratio ~h: 0.5]. *)
   val center: t -> t
 
-  (** Same as [ratio ~h: 1.]. *)
+  (** Same as [at_ratio ~h: 1.]. *)
   val right: t -> t
 
-  (** Same as [ratio ~v: 0.]. *)
+  (** Same as [at_ratio ~v: 0.]. *)
   val top: t -> t
 
-  (** Same as [ratio ~v: 0.5]. *)
+  (** Same as [at_ratio ~v: 0.5]. *)
   val middle: t -> t
 
-  (** Same as [ratio ~v: 1.]. *)
+  (** Same as [at_ratio ~v: 1.]. *)
   val bottom: t -> t
 
   (** Set the size of a widget.
 
       Useful for widgets which, by default, take the size of their parent,
-      such as [ratio]. *)
+      such as [at_ratio]. *)
   val size: ?w: int -> ?h: int -> t -> t
 
   (** Widgets whose placement has been computed. *)

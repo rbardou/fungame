@@ -105,7 +105,7 @@ struct
           box [
             rect ~fill: true ~color: (255, 255, 255, 255) ();
             rect ~fill: true ~color: (200, 100, 0, 255) ~w: 10 ~h: 10 ()
-            |> ratio ~h: 0.5 ~v: 0.2;
+            |> at_ratio ~h: 0.5 ~v: 0.2;
           ]
           |> margin ~all: 5;
           rect ~fill: true ~color: (0, 0, 0, 255) ();
