@@ -815,7 +815,6 @@ struct
                 memo_current := Memo.add parameters image !memo_current;
                 image
             | exception Not_found ->
-print_endline ("render " ^ text);
                 let image = render ~utf8 ~mode ~color font text in
                 memo_current := Memo.add parameters image !memo_current;
                 image
