@@ -2,13 +2,18 @@ let alert x = Dom_html.window##alert(Js.string x)
 let log x = Firebug.console##log(Js.string x)
 let error x = Firebug.console##error(Js.string x)
 
+let make_color (r, g, b, a) =
+  Printf.sprintf "#%02x%02x%02x" r g b |> Js.string
+
 module Window =
 struct
+  type context = Dom_html.canvasRenderingContext2D Js.t
+
   type t =
     {
       w: int;
       h: int;
-      mutable context: Dom_html.canvasRenderingContext2D Js.t option;
+      mutable context: context option;
     }
 
   let create ?(title = "Fungame") ?(w = 640) ?(h = 480) () =
@@ -159,53 +164,113 @@ end
 
 module Image =
 struct
+  type renderer =
+    | Empty
+    | Image of Dom_html.imageElement Js.t
+    | Text of Js.js_string Js.t * Js.js_string Js.t * (int * int * int * int)
+
+  (* Size is computed when rendering, maybe it has more chance
+     of being loaded then? *)
   type t =
     {
-      w: int;
-      h: int;
+      mutable w: int option;
+      mutable h: int option;
       window: Window.t;
-      mutable image: Dom_html.imageElement Js.t option;
+      mutable renderer: renderer;
     }
 
   let load (window: Window.t) filename =
-    (* TODO: fail gracefully if file does not exist *)
     let image = Dom_html.(createImg document) in
     image##src <- Js.string filename;
     {
-      w = image##width;
-      h = image##height;
+      w = None;
+      h = None;
       window;
-      image = Some image;
+      renderer = Image image;
     }
 
   let destroy image =
-    image.image <- None
+    image.renderer <- Empty
 
-  let width image = image.w
-  let height image = image.h
+  let width image =
+    match image.w with
+      | None -> 64
+      | Some w -> w
+
+  let height image =
+    match image.h with
+      | None -> 64
+      | Some h -> h
+
+  let measure_text (context: Window.context) text =
+    let metrics = context##measureText(text) in
+    let w = int_of_float metrics##width in
+    (* JS does not provide an easy way to measure height.
+       For now, we use a hack by estimating the height from the width of one large character.
+       TODO: improve this *)
+    let metrics = context##measureText(Js.string "W") in
+    let h = int_of_float metrics##width in
+    w, h
 
   let draw ~src_x ~src_y ~w ~h ~x ~y image =
-    match image.image, image.window.context with
-      | None, _ | _, None ->
+    match image.renderer, image.window.context with
+      | Empty, _ | _, None ->
           ()
-      | Some img, Some context ->
+      | Image img, Some context ->
           let w = float w in
           let h = float h in
-          try
-            context##drawImage_full(
-              img,
-              float src_x, float src_y, w, h,
-              float x, float y, w, h
-            )
-          with exn ->
-            let message =
-              match exn with
-                | Failure message ->
-                    message
-                | exn ->
-                    Printexc.to_string exn
-            in
-            error ("Failed to draw image: " ^ Js.to_string img##src ^ ": " ^ message)
+          (
+            try
+              context##drawImage_full(
+                img,
+                float src_x, float src_y, w, h,
+                float x, float y, w, h
+              );
+              (* If we are still here we should have the size. *)
+              (
+                match image.w with
+                  | None ->
+                      image.w <- Some img##width
+                  | Some _ ->
+                      ()
+              );
+              (
+                match image.h with
+                  | None ->
+                      image.h <- Some img##height
+                  | Some _ ->
+                      ()
+              );
+            with exn ->
+              let message =
+                match exn with
+                  | Failure message ->
+                      message
+                  | exn ->
+                      Printexc.to_string exn
+              in
+              error ("Failed to draw image: " ^ Js.to_string img##src ^ ": " ^ message)
+          )
+      | Text (text, font_name, color), Some context ->
+          (* TODO: support clipping with [src_x], [src_y], [w] and [h] *)
+          context##font <- font_name;
+          context##fillStyle <- make_color color;
+          let y_offset =
+            (* Unlike SDL, JS uses the baseline or something like that to draw text.
+               But js_of_ocaml does not seem to provide advanced text metrics
+               (which are not supported by browsers yet anyway?).
+               So here is another ugly hack for now... *)
+            (* TODO: improve this *)
+            match image.h with
+              | None ->
+                  let w, h = measure_text context text in
+                  image.w <- Some w;
+                  image.h <- Some h;
+                  h * 8 / 10
+              | Some h ->
+                  h * 8 / 10
+          in
+          context##fillText(text, float x, float (y + y_offset));
 end
 
 module Font =
@@ -213,16 +278,34 @@ struct
   type t =
     {
       window: Window.t;
+      name: Js.js_string Js.t;
     }
 
   let load (window: Window.t) filename size =
-    { window } (* TODO *)
+    (* TODO: use [filename] somehow, but we may need a @font-face in a CSS style sheet. *)
+    let name = Js.string (string_of_int size ^ "px sans-serif") in
+    { window; name }
 
-  let destroy image =
-    () (* TODO *)
+  let destroy font =
+    ()
 
   let render ?wrap ?(color = (0, 0, 0, 255)) font text =
-    { Image.w = 64; h = 64; window = font.window; image = None } (* TODO *)
+    let text = Js.string text in
+    let w, h =
+      match font.window.context with
+        | None ->
+            None, None
+        | Some context ->
+            context##font <- font.name;
+            let w, h = Image.measure_text context text in
+            Some w, Some h
+    in
+    {
+      Image.w;
+      h;
+      window = font.window;
+      renderer = Text (text, font.name, color);
+    }
 
   let render_memoized ?wrap ?(color = (0, 0, 0, 255)) font text =
     render ?wrap ~color font text (* TODO *)
@@ -344,8 +427,7 @@ struct
 
     let draw_rect (context: Dom_html.canvasRenderingContext2D Js.t)
         ~x ~y ~w ~h ~color ~fill =
-      let r, g, b, a = color in
-      let color = Printf.sprintf "#%02x%02x%02x" r g b |> Js.string in
+      let color = make_color color in
       if fill then
         (
           context##fillStyle <- color;
