@@ -13,7 +13,7 @@ struct
   let bat = img "bat.png"
   let quit_text = Font.render sansation "Quit"
   let wrapped_text =
-    Font.render ~mode: (Wrapped 100) ~color: (255, 0, 0, 255) sansation
+    Font.render ~wrap: 100 ~color: (255, 0, 0, 255) sansation
       "Text can be wrapped."
   let kick_drum_1 = Sound.load "samples/Kick-Drum-1.wav"
 

@@ -79,32 +79,14 @@ sig
     (** Free a font. *)
     val destroy: t -> unit
 
-    (** How to render text.
-
-        [Solid] is fast to render and to draw, but it is ugly.
-
-        [Shaded] is slower to render but as fast as [Solid] to draw.
-        It is as pretty as [Blended] but the resulting image is not transparent.
-        The arguments are the background color (red, green, blue, alpha).
-
-        [Blended] is as slow to render as [Shaded] and the image is transparent,
-        so it is the best mode to draw on top of other images.
-
-        [Wrapped width] is the same as [Blended], except that the text is split
-        into several lines if it is larger than [width]. *)
-    type mode =
-      | Solid
-      | Shaded of int * int * int * int
-      | Blended
-      | Wrapped of int
-
     (** Render some text.
 
-        Default [mode] is [Blended].
+        If [wrap] is specified, split text into several lines at word
+        boundaries so that the result is no larger than [width] if possible.
 
         Default [color] is black ([0, 0, 0, 255]). *)
     val render:
-      ?mode: mode ->
+      ?wrap: int ->
       ?color: (int * int * int * int) ->
       t -> string -> Image.t
 
@@ -122,7 +104,7 @@ sig
         Instead of calling [render_memoized] directly, you probably want to
         use [Widget.text]. *)
     val render_memoized:
-      ?mode: mode ->
+      ?wrap: int ->
       ?color: (int * int * int * int) ->
       t -> string -> Image.t
   end
@@ -163,7 +145,7 @@ sig
     include Fungame_widget.WIDGET with type image = Image.t
 
     val text:
-      ?mode: Font.mode ->
+      ?wrap: int ->
       ?color: (int * int * int * int) ->
       Font.t -> string -> t
   end

@@ -740,13 +740,7 @@ struct
           Tsdl_ttf.Ttf.close_font f;
           font.font <- None
 
-  type mode =
-    | Solid
-    | Shaded of int * int * int * int
-    | Blended
-    | Wrapped of int
-
-  let render ?(mode = Blended) ?(color = (0, 0, 0, 255)) font text =
+  let render ?wrap ?(color = (0, 0, 0, 255)) font text =
     let window = font.window in
     let renderer = Window.renderer window in
     let font =
@@ -761,15 +755,10 @@ struct
       Sdl.Color.create ~r ~g ~b ~a
     in
     (
-      match mode with
-        | Solid ->
-            Tsdl_ttf.Ttf.render_utf8_solid font text color
-        | Shaded (r, g, b, a) ->
-            let bg_color = Sdl.Color.create ~r ~g ~b ~a in
-            Tsdl_ttf.Ttf.render_utf8_shaded font text color bg_color
-        | Blended ->
+      match wrap with
+        | None ->
             Tsdl_ttf.Ttf.render_utf8_blended font text color
-        | Wrapped width ->
+        | Some width ->
             Tsdl_ttf.Ttf.render_utf8_blended_wrapped font text color
               (Int32.of_int width)
     ) >>= fun surface ->
@@ -779,7 +768,7 @@ struct
 
   module Parameters =
   struct
-    type t = mode * (int * int * int * int) * int * string
+    type t = int option * (int * int * int * int) * int * string
     let compare = (Pervasives.compare: t -> t -> int)
   end
 
@@ -790,8 +779,8 @@ struct
   let memo_old = ref Memo.empty
   let memo_current = ref Memo.empty
 
-  let render_memoized ?(mode = Blended) ?(color = (0, 0, 0, 255)) font text =
-    let parameters = mode, color, font.id, text in
+  let render_memoized ?wrap ?(color = (0, 0, 0, 255)) font text =
+    let parameters = wrap, color, font.id, text in
     match Memo.find parameters !memo_current with
       | image ->
           image
@@ -803,7 +792,7 @@ struct
                 memo_current := Memo.add parameters image !memo_current;
                 image
             | exception Not_found ->
-                let image = render ~mode ~color font text in
+                let image = render ?wrap ~color font text in
                 memo_current := Memo.add parameters image !memo_current;
                 image
 
@@ -874,8 +863,8 @@ module Widget =
 struct
   include Fungame_widget.Make (Image)
 
-  let text ?mode ?color font text =
-    image (Font.render_memoized ?mode ?color font text)
+  let text ?wrap ?color font text =
+    image (Font.render_memoized ?wrap ?color font text)
 end
 
 module Main_loop =
