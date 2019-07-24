@@ -746,8 +746,7 @@ struct
     | Blended
     | Wrapped of int
 
-  let render ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
-      font text =
+  let render ?(mode = Blended) ?(color = (0, 0, 0, 255)) font text =
     let window = font.window in
     let renderer = Window.renderer window in
     let font =
@@ -762,25 +761,15 @@ struct
       Sdl.Color.create ~r ~g ~b ~a
     in
     (
-      match utf8, mode with
-        | false, Solid ->
-            Tsdl_ttf.Ttf.render_text_solid font text color
-        | true, Solid ->
+      match mode with
+        | Solid ->
             Tsdl_ttf.Ttf.render_utf8_solid font text color
-        | false, Shaded (r, g, b, a) ->
-            let bg_color = Sdl.Color.create ~r ~g ~b ~a in
-            Tsdl_ttf.Ttf.render_text_shaded font text color bg_color
-        | true, Shaded (r, g, b, a) ->
+        | Shaded (r, g, b, a) ->
             let bg_color = Sdl.Color.create ~r ~g ~b ~a in
             Tsdl_ttf.Ttf.render_utf8_shaded font text color bg_color
-        | false, Blended ->
-            Tsdl_ttf.Ttf.render_text_blended font text color
-        | true, Blended ->
+        | Blended ->
             Tsdl_ttf.Ttf.render_utf8_blended font text color
-        | false, Wrapped width ->
-            Tsdl_ttf.Ttf.render_text_blended_wrapped font text color
-              (Int32.of_int width)
-        | true, Wrapped width ->
+        | Wrapped width ->
             Tsdl_ttf.Ttf.render_utf8_blended_wrapped font text color
               (Int32.of_int width)
     ) >>= fun surface ->
@@ -790,7 +779,7 @@ struct
 
   module Parameters =
   struct
-    type t = bool * mode * (int * int * int * int) * int * string
+    type t = mode * (int * int * int * int) * int * string
     let compare = (Pervasives.compare: t -> t -> int)
   end
 
@@ -801,9 +790,8 @@ struct
   let memo_old = ref Memo.empty
   let memo_current = ref Memo.empty
 
-  let render_memoized ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
-      font text =
-    let parameters = utf8, mode, color, font.id, text in
+  let render_memoized ?(mode = Blended) ?(color = (0, 0, 0, 255)) font text =
+    let parameters = mode, color, font.id, text in
     match Memo.find parameters !memo_current with
       | image ->
           image
@@ -815,7 +803,7 @@ struct
                 memo_current := Memo.add parameters image !memo_current;
                 image
             | exception Not_found ->
-                let image = render ~utf8 ~mode ~color font text in
+                let image = render ~mode ~color font text in
                 memo_current := Memo.add parameters image !memo_current;
                 image
 
@@ -886,8 +874,8 @@ module Widget =
 struct
   include Fungame_widget.Make (Image)
 
-  let text ?utf8 ?mode ?color font text =
-    image (Font.render_memoized ?utf8 ?mode ?color font text)
+  let text ?mode ?color font text =
+    image (Font.render_memoized ?mode ?color font text)
 end
 
 module Main_loop =

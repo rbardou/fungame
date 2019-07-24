@@ -100,15 +100,10 @@ sig
 
     (** Render some text.
 
-        If [utf8] is [true], assume the input string is UTF8-encoded.
-        Otherwise, assume the input string is LATIN1-encoded.
-        Default is [true].
-
         Default [mode] is [Blended].
 
         Default [color] is black ([0, 0, 0, 255]). *)
     val render:
-      ?utf8: bool ->
       ?mode: mode ->
       ?color: (int * int * int * int) ->
       t -> string -> Image.t
@@ -127,7 +122,6 @@ sig
         Instead of calling [render_memoized] directly, you probably want to
         use [Widget.text]. *)
     val render_memoized:
-      ?utf8: bool ->
       ?mode: mode ->
       ?color: (int * int * int * int) ->
       t -> string -> Image.t
@@ -169,7 +163,6 @@ sig
     include Fungame_widget.WIDGET with type image = Image.t
 
     val text:
-      ?utf8: bool ->
       ?mode: Font.mode ->
       ?color: (int * int * int * int) ->
       Font.t -> string -> t

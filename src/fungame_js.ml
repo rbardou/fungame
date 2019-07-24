@@ -227,13 +227,13 @@ struct
     | Blended
     | Wrapped of int
 
-  let render ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
+  let render ?(mode = Blended) ?(color = (0, 0, 0, 255))
       font text =
     { Image.w = 64; h = 64; window = font.window; image = None } (* TODO *)
 
-  let render_memoized ?(utf8 = true) ?(mode = Blended) ?(color = (0, 0, 0, 255))
+  let render_memoized ?(mode = Blended) ?(color = (0, 0, 0, 255))
       font text =
-    render ~utf8 ~mode ~color font text (* TODO *)
+    render ~mode ~color font text (* TODO *)
 end
 
 module Sound =
@@ -251,8 +251,8 @@ module Widget =
 struct
   include Fungame_widget.Make (Image)
 
-  let text ?utf8 ?mode ?color font text =
-    image (Font.render_memoized ?utf8 ?mode ?color font text)
+  let text ?mode ?color font text =
+    image (Font.render_memoized ?mode ?color font text)
 end
 
 module Main_loop =
