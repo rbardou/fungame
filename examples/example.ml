@@ -8,14 +8,14 @@ struct
   let img = Image.load window
   let font = Font.load window
 
-  (* We assume this example is launched from the main directory of Fungame. *)
-  let sansation = font "examples/sansation/Sansation_Regular.ttf" 24
-  let bat = img "examples/bat.png"
+  (* We assume this example is launched from the examples directory of Fungame. *)
+  let sansation = font "sansation/Sansation_Regular.ttf" 24
+  let bat = img "bat.png"
   let quit_text = Font.render sansation "Quit"
   let wrapped_text =
     Font.render ~mode: (Wrapped 100) ~color: (255, 0, 0, 255) sansation
       "Text can be wrapped."
-  let kick_drum_1 = Sound.load "examples/samples/Kick-Drum-1.wav"
+  let kick_drum_1 = Sound.load "samples/Kick-Drum-1.wav"
 
   let player_x = ref 40
   let player_y = ref 20

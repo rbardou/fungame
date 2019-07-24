@@ -1,5 +1,6 @@
 let alert x = Dom_html.window##alert(Js.string x)
 let log x = Firebug.console##log(Js.string x)
+let error x = Firebug.console##error(Js.string x)
 
 module Window =
 struct
@@ -190,11 +191,21 @@ struct
       | Some img, Some context ->
           let w = float w in
           let h = float h in
-          context##drawImage_full(
-            img,
-            float src_x, float src_y, w, h,
-            float x, float y, w, h
-          )
+          try
+            context##drawImage_full(
+              img,
+              float src_x, float src_y, w, h,
+              float x, float y, w, h
+            )
+          with exn ->
+            let message =
+              match exn with
+                | Failure message ->
+                    message
+                | exn ->
+                    Printexc.to_string exn
+            in
+            error ("Failed to draw image: " ^ Js.to_string img##src ^ ": " ^ message)
 end
 
 module Font =
@@ -351,7 +362,7 @@ struct
       else
         (
           context##strokeStyle <- color;
-          context##rect(float x, float y, float w, float h)
+          context##rect(float x, float y, float w, float h) (* TODO: strokeRect instead??? *)
         )
     in
 
