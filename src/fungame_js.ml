@@ -313,13 +313,28 @@ end
 
 module Sound =
 struct
-  type t = unit (* TODO *)
+  (* TODO: audio cannot play itself more than once simultaneously,
+     do we want to create several audio and cycle? *)
+  type t = { mutable audio: Dom_html.audioElement Js.t option }
 
   let init () = ()
   let close () = ()
-  let load filename = () (* TODO *)
-  let destroy sound = () (* TODO *)
-  let play ?(loops = 0) sound = () (* TODO *)
+
+  let load filename =
+    let audio = Dom_html.createAudio Dom_html.document in
+    audio##src <- Js.string filename;
+    { audio = Some audio }
+
+  let destroy sound =
+    sound.audio <- None
+
+  let play ?(loops = 0) sound =
+    (* TODO: loops *)
+    match sound.audio with
+      | None ->
+          ()
+      | Some audio ->
+          audio##play()
 end
 
 module Widget =
