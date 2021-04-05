@@ -1,0 +1,4 @@
+(library
+ (name fungame)
+ (public_name fungame)
+ (libraries tsdl tsdl_ttf tsdl_mixer tsdl_image))
